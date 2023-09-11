@@ -7,6 +7,6 @@ RUN apt-get update & apt-get upgrade
 COPY ./requirements.txt ./requirements.txt
 RUN python -m pip install -r ./requirements.txt
 
-COPY ./src ./src
+COPY . .
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
