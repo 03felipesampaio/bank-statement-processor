@@ -4,5 +4,5 @@ from ..main import app
 
 client = TestClient(app)
 
-def dummy_test():
+def test_dummy_test():
     assert True == True
