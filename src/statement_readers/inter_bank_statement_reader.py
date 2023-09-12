@@ -1,7 +1,23 @@
 import csv
 from pathlib import Path
 from datetime import datetime
+import decimal
 
+# Set to money precision
+decimal.getcontext().prec = 2
+
+
+def convert_brazilian_real_notation_to_decimal(brazilian_real_value: str):
+    """
+    Convert brazilian money notation to decimal value
+    
+    Ex.: 
+        '-1,25' -> Decimal(-1.25)
+        '25.000,00' -> Decimal(25000.00)
+    """
+    reais, cents = brazilian_real_value.split(',')
+    reais = reais.replace('.', '')
+    return decimal.Decimal('.'.join((reais, cents)))
 
 class InterBankStatementFileReader:
     """
@@ -36,11 +52,21 @@ class InterBankStatementFileReader:
         raw_start, raw_end = raw_period_text.split(' a ')
         start = datetime.strptime(raw_start, '%d/%m/%Y')
         end = datetime.strptime(raw_end, '%d/%m/%Y')
-        
+
         return start, end
-    
-    def _load_transactions(self, raw_rows) -> list[dict]:
-        header = raw_rows[0]
-        rows = raw_rows[1:]
+
+    def __clean_rows(self, row):
+        row['transaction_date'] = datetime.strptime(row['transaction_date'], '%d/%m/%Y')
+        row['transaction_type'] = row['transaction_type'].strip()
+        row['transaction_description'] = row['transaction_description'].strip()
+        row['transaction_value'] = convert_brazilian_real_notation_to_decimal(row['transaction_value'])
         
-        return [dict(zip(header, row)) for row in rows]
+        return row
+
+    def _load_transactions(self, raw_rows) -> list[dict]:
+        header = ('transaction_date', 'transaction_type',
+                  'transaction_description', 'transaction_value')
+        rows = raw_rows[1:]
+
+        return [self.__clean_rows(dict(zip(header, row))) for row in rows]
+
