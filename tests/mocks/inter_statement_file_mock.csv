@@ -1,0 +1,11 @@
+ Extrato Conta Corrente 
+Conta ;123456789
+Período ;05/03/2022 a 30/06/2023
+
+Data Lançamento;Histórico;Descrição;Valor;Saldo
+30/06/2023;Pix recebido;Joe Smith;28,00
+30/06/2023;Compra no débito;Napoles Pizzaria       Sao Paulo    Bra;-38,89
+30/06/2023;Pix recebido;Neymar Jr.;150,00
+30/06/2023;Compra no débito;Sandwish Smashs;-46,60
+22/06/2022;Aplicação;Lci Liq 90 Dias Banco Inter Sa;-1.600,00
+05/03/2022;Pix enviado ;Latam Gateway;-227,91
