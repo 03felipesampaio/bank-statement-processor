@@ -37,7 +37,7 @@ class InterBankStatementFileReader:
         try:
             self.statement_type = raw_rows[0][0].strip()
             self.account_number = raw_rows[1][1].strip()
-            self.start, self.end = self._read_period(raw_rows[2][1])
+            self.start_date, self.end_date = self._read_period(raw_rows[2][1])
             self.transactions = self._load_transactions(raw_rows[5:])
         except Exception as e:
             raise Exception(f"Error while trying to read file {file_name}, "
@@ -54,16 +54,16 @@ class InterBankStatementFileReader:
         return start, end
 
     def __clean_rows(self, row):
-        row['transaction_date'] = datetime.strptime(row['transaction_date'], '%d/%m/%Y')
-        row['transaction_type'] = row['transaction_type'].strip()
-        row['transaction_description'] = row['transaction_description'].strip()
-        row['transaction_value'] = convert_brazilian_real_notation_to_decimal(row['transaction_value'])
+        row['date'] = datetime.strptime(row['date'], '%d/%m/%Y')
+        row['type'] = row['type'].strip()
+        row['description'] = row['description'].strip()
+        row['value'] = convert_brazilian_real_notation_to_decimal(row['value'])
         
         return row
 
     def _load_transactions(self, raw_rows) -> list[dict]:
-        header = ('transaction_date', 'transaction_type',
-                  'transaction_description', 'transaction_value')
+        header = ('date', 'type',
+                  'description', 'value')
 
         rows = []
 
@@ -74,4 +74,13 @@ class InterBankStatementFileReader:
                 raise Exception(f'Error while processing {i+1} transaction (Line {i+6} in csv file).') from e
 
         return rows
+    
+    def to_json(self):
+        return {
+            'statement_type': self.statement_type,
+            'account_number': self.account_number,
+            'start_date': self.start_date,
+            'end_date': self.end_date,
+            'transactions': self.transactions
+        }
 
