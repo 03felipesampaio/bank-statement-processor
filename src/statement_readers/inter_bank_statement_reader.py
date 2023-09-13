@@ -19,6 +19,7 @@ def convert_brazilian_real_notation_to_decimal(brazilian_real_value: str):
     reais = reais.replace('.', '')
     return decimal.Decimal('.'.join((reais, cents)))
 
+
 class InterBankStatementFileReader:
     """
     Reads a csv file from Inter Banking
@@ -26,27 +27,24 @@ class InterBankStatementFileReader:
     of time.
 
     Arguments:
-        file_path (Path or str): CSV file path
+        file_name (str): File name
+        raw_file_content (File object): CSV file content
     """
 
-    def __init__(self, file_path: Path | str) -> None:
-        if not isinstance(file_path, Path):
-            file_path = Path(file_path)
-
-        raw_rows = self._read_file(file_path)
+    def __init__(self, file_name, raw_file_content) -> None:
+        raw_rows = self._read_file(raw_file_content)
 
         try:
             self.statement_type = raw_rows[0][0].strip()
             self.account_number = raw_rows[1][1].strip()
             self.start, self.end = self._read_period(raw_rows[2][1])
-            self.transactions = self._load_transactions(raw_rows[4:])
+            self.transactions = self._load_transactions(raw_rows[5:])
         except Exception as e:
-            raise Exception(f"Error while trying to read file {file_path.name}, "
-                            "are you sure that this file came from Inter Bank") from e
+            raise Exception(f"Error while trying to read file {file_name}, "
+                            "are you sure that this file came from Inter Bank?") from e
 
-    def _read_file(self, file_path):
-        with open(file_path, newline='') as csv_file:
-            return list(csv.reader(csv_file, delimiter=';'))
+    def _read_file(self, raw_file_content):
+        return list(csv.reader((row for row in raw_file_content if row), delimiter=';'))
 
     def _read_period(self, raw_period_text: str):
         raw_start, raw_end = raw_period_text.split(' a ')
@@ -66,7 +64,14 @@ class InterBankStatementFileReader:
     def _load_transactions(self, raw_rows) -> list[dict]:
         header = ('transaction_date', 'transaction_type',
                   'transaction_description', 'transaction_value')
-        rows = raw_rows[1:]
 
-        return [self.__clean_rows(dict(zip(header, row))) for row in rows]
+        rows = []
+
+        for i, row in enumerate(raw_rows):
+            try:
+                rows.append(self.__clean_rows(dict(zip(header, row))))
+            except Exception as e:
+                raise Exception(f'Error while processing {i+1} transaction (Line {i+6} in csv file).') from e
+
+        return rows
 
