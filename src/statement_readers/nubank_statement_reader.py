@@ -42,3 +42,10 @@ class NubankBankStatementFileReader:
                 raise Exception(f'Error while processing {i+1} transaction (Line {i+1} in csv file).') from e
 
         return rows
+
+    def to_json(self):
+        return {
+            'start_date': self.start_date,
+            'end_date': self.end_date,
+            'transactions': self.transactions
+        }
