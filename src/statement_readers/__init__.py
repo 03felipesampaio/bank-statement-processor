@@ -1,1 +1,2 @@
 from .inter_bank_statement_reader import InterBankStatementFileReader
+from .nubank_statement_reader import NubankBankStatementFileReader
