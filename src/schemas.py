@@ -16,3 +16,16 @@ class InterStatement (BaseModel):
     end_date: datetime
     
     transactions: list[InterTransaction]
+
+
+class NubankTransaction (BaseModel):
+    date: datetime
+    id: str
+    description: str
+    value: Decimal
+
+
+class NubankStatement (BaseModel):
+    start_date: datetime
+    end_date: datetime
+    transactions: list[NubankTransaction]
