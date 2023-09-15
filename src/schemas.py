@@ -3,6 +3,10 @@ from datetime import datetime
 from decimal import Decimal
 
 
+class Bank (BaseModel):
+    name: str
+
+
 class InterTransaction (BaseModel):
     date: datetime
     type: str
