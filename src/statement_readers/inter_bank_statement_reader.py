@@ -2,6 +2,7 @@ import csv
 from pathlib import Path
 from datetime import datetime
 import decimal
+import hashlib
 
 # Set to money precision
 decimal.getcontext().prec = 2
@@ -54,6 +55,8 @@ class InterBankStatementFileReader:
         return start, end
 
     def __clean_rows(self, row):
+        text_to_hash = row['date']+row['description']+row['value']
+        row['id'] = hashlib.sha256(text_to_hash.encode('utf8')).hexdigest()
         row['date'] = datetime.strptime(row['date'], '%d/%m/%Y')
         row['type'] = row['type'].strip()
         row['description'] = row['description'].strip()
@@ -72,6 +75,7 @@ class InterBankStatementFileReader:
                 rows.append(self.__clean_rows(dict(zip(header, row))))
             except Exception as e:
                 raise Exception(f'Error while processing {i+1} transaction (Line {i+6} in csv file).') from e
+            
 
         return rows
     

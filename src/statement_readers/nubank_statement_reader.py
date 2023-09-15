@@ -2,6 +2,7 @@ import csv
 from pathlib import Path
 from datetime import datetime
 import decimal
+import hashlib
 
 # Set to money precision
 decimal.getcontext().prec = 2
@@ -24,6 +25,7 @@ class NubankBankStatementFileReader:
 
     
     def __clean_row(self, row):
+        row['id'] = hashlib.sha256(row['id'].encode('utf8')).hexdigest()
         row['date'] = datetime.strptime(row['date'], '%d/%m/%Y')
         row['value'] = decimal.Decimal(row['value'])
 
