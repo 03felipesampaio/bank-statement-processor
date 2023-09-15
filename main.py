@@ -1,13 +1,38 @@
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException, Depends, UploadFile
+from sqlalchemy.orm import Session
 
-from src import crud, schemas
+from src import crud, schemas, models
+from src.database import SessionLocal, engine, Base
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 @app.get("/")
 def get_main_page() -> str:
     return "Hello World!"
+
+
+@app.post("/banks/{bank_name}", response_model=schemas.Bank, status_code=201)
+def add_bank(bank_name: str, db: Session = Depends(get_db)):
+    bank = crud.add_bank(db, bank_name)
+
+    return bank
+
+
+@app.get("/banks/{bank_name}", response_model=schemas.Bank)
+def get_bank(bank_name: str, db: Session = Depends(get_db)):
+    return crud.get_bank(db, bank_name)
 
 
 @app.post("/banks/inter/statements", response_model=schemas.InterStatement, status_code=201)
