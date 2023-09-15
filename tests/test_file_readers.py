@@ -1,7 +1,9 @@
 import pytest
 from pathlib import Path
 from decimal import Decimal, getcontext
+from datetime import datetime
 from src.statement_readers.inter_bank_statement_reader import InterBankStatementFileReader, convert_brazilian_real_notation_to_decimal
+from src.statement_readers.nubank_statement_reader import NubankBankStatementFileReader
 
 getcontext().prec = 2
 
@@ -20,3 +22,15 @@ class TestInterBankFileReader:
 
         assert len(statement.transactions) == 6
         assert statement.account_number == '123456789'
+
+
+class TestNubankFileReader:
+    dummy_file_path = Path("tests/mocks/nubank_statement_file_mock.csv")
+
+    def test_read_file_with_valid_transactions(self):
+        with open(self.dummy_file_path) as csv_file:
+            statement = NubankBankStatementFileReader(self.dummy_file_path.name, csv_file)
+
+        assert len(statement.transactions) == 7
+        assert statement.start_date == datetime(2023, 8, 1)
+        assert statement.end_date == datetime(2023, 8, 31)
