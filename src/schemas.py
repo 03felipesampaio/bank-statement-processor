@@ -8,6 +8,7 @@ class Bank (BaseModel):
 
 
 class InterTransaction (BaseModel):
+    id: str
     date: datetime
     type: str
     description: str
@@ -23,6 +24,7 @@ class InterStatement (BaseModel):
 
 
 class NubankTransaction (BaseModel):
+    id: str
     date: datetime
     id: str
     description: str
