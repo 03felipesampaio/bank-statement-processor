@@ -1,2 +1,6 @@
 fastapi[all]
 pytest==7.4.2
+python-dotenv
+sqlalchemy
+PyMySQL
+cryptography
