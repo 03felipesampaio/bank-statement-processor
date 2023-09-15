@@ -5,3 +5,4 @@ statements
 .pytest_cache
 .coverage
 coverage.*
+.env
