@@ -28,12 +28,19 @@ class NubankBankStatementFileReader:
         row['id'] = hashlib.sha256(row['id'].encode('utf8')).hexdigest()
         row['date'] = datetime.strptime(row['date'], '%d/%m/%Y')
         row['value'] = decimal.Decimal(row['value'])
+        broken_description = row['full_description'].split('-')
+        row['type'] = broken_description[0].strip()
+        if len(broken_description) > 1:
+            row['description'] = '-'.join(broken_description[1:]).strip()
+        else:
+            row['description'] = broken_description[0]
+        del row['full_description']
 
         return row
     
     def _load_transactions(self, raw_rows):
         header = ('date', 'value',
-                  'id', 'description')
+                  'id', 'full_description')
         
         rows = []
 
