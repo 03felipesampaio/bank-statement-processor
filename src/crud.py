@@ -18,11 +18,29 @@ def get_bank(db: Session, bank_name: str):
 # def add_transaction(db: Session, transaction)
 
 
-def insert_inter_bank_transactions_from_file(file_name: str, file):
+def insert_inter_bank_transactions_from_file(db: Session, file_name: str, file):
     statement = InterBankStatementFileReader(file_name, file)
+    transactions = []
+    for transaction in statement.transactions:
+        transaction_model = models.Transaction(
+            **transaction,
+            bank='Inter'
+        )
+        transactions.append(transaction_model)
+    db.add_all(transactions)
+    db.commit()
     return statement.to_json()
 
 
-def insert_nubank_transactions_from_file(file_name: str, file):
+def insert_nubank_transactions_from_file(db: Session, file_name: str, file):
     statement = NubankBankStatementFileReader(file_name, file)
+    transactions = []
+    for transaction in statement.transactions:
+        transaction_model = models.Transaction(
+            **transaction,
+            bank='Nubank'
+        )
+        transactions.append(transaction_model)
+    db.add_all(transactions)
+    db.commit()
     return statement.to_json()
