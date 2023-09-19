@@ -3,6 +3,10 @@ from sqlalchemy.orm import Session
 
 from src import crud, schemas, models
 from src.database import SessionLocal, engine, Base
+from setup_database import setup_database
+
+
+setup_database(SessionLocal())
 
 app = FastAPI()
 
