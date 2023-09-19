@@ -1,15 +1,14 @@
-from src.database import Base, SessionLocal, engine
+from src.database import Base
 from src import models
 
 from sqlalchemy.orm import Session
 
 
-Base.metadata.create_all(bind=engine)
-
-
 def setup_banks(db: Session):
-    db.add(models.Bank(name='nubank'))
-    db.add(models.Bank(name='inter'))
+    for bank in ['nubank', 'inter']:
+        if db.get(models.Bank, bank):
+            continue
+        db.add(models.Bank(name=bank))
     db.commit()
 
 
@@ -24,12 +23,16 @@ def setup_transaction_types(db: Session):
     ]
 
     for _type in types:
+        if db.get(models.TransactionTypes, _type):
+            continue
         db.add(models.TransactionTypes(type=_type))
 
     db.commit()
 
 
-if __name__ == '__main__':
-    with SessionLocal() as session:
-        setup_banks(session)
-        setup_transaction_types(session)
+def setup_database(db: Session):
+    print(f"Starting database setup")
+    Base.metadata.create_all(bind=db.connection())
+    setup_banks(db)
+    setup_transaction_types(db)
+    print("Ended database setup")
