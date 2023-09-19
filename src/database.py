@@ -7,15 +7,17 @@ import os
 
 env_file = Path('.env')
 
-if env_file.exists():
+if env_file.exists() and not os.getenv('USE_COMPOSE_DB'):
       env = load_dotenv(env_file)
 
 
 env = os.environ
 
-url = f'{env["DB"]}+{env["DB_DRIVER"]}://{env["DB_USER"]}:' \
-      f'{env["DB_PWD"]}@{env["DB_HOST"]}:{env["DB_PORT"]}' \
-      f'/{env["DB_DEFAULT"]}'
+url = f'{env["DB"]}+{env["DB_DRIVER"]}://{env["MYSQL_USER"]}:' \
+      f'{env["MYSQL_PASSWORD"]}@{env["MYSQL_HOST"]}:{env["MYSQL_PORT"]}' \
+      f'/{env["MYSQL_DB"]}'
+
+print(url)
 
 engine = create_engine(url)
 
