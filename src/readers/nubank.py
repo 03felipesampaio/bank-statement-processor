@@ -10,7 +10,7 @@ from ..models import Transaction
 # class NubankCreditCardReaderExtractor (FileExtractor):
     # def open()
 
-def convert_brazilian_real_notation_to_decimal(brazilian_real_value: str):
+def convert_brazilian_real_notation_to_decimal(brazilian_real_value: str) -> float:
     """
     Convert brazilian money notation to decimal value
     
@@ -18,10 +18,7 @@ def convert_brazilian_real_notation_to_decimal(brazilian_real_value: str):
         '-1,25' -> Decimal(-1.25)
         '25.000,00' -> Decimal(25000.00)
     """
-    # reais, cents = brazilian_real_value.split(',')
-    # reais = reais.replace('.', '')
-    # return decimal.Decimal('.'.join((reais, cents)))
-    return float(re.sub(r'[\D]', '', brazilian_real_value)) / 100
+    return float(re.sub(r'[^\d-]', '', brazilian_real_value)) / 100
 
 
 
