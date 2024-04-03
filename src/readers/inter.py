@@ -1,9 +1,11 @@
 from datetime import datetime, date
 from fitz import Document, Page
+import arrow
 import re
+import itertools
 
 from ..models import Transaction
-
+from .. import utils
 
 class InterCreditCardBill:
     def __init__(self, bill_date: datetime, value: float, period_of_bill: tuple[datetime, datetime], transactions: list[Transaction] = None) -> None:
@@ -20,16 +22,26 @@ class InterCreditCardBill:
 
 
 class InterCreditCardReader:
+    BILL_DATE_PATTERN = r'VENCIMENTO[\s\n]+(?P<date>\d{2}/\d{2}/\d{4})'
+    BILL_VALUE_PATTERN = r'TOTAL DESSA FATURA[\s\n]+R\$[\s\n]+(?P<value>[\d.]+,\d{2})'
     CREDIT_CARD_HEADER_PATTERN = r'\nCARTÃO (?P<first_digits>\d{4})\s+(?P<last_digits>\d{4})'
     TRANSACTION_HEADER_PATTERN = r'DATA\s*MOVIMENTAÇÃO\s*VALOR'
     TRANSACTION_PATTERN = re.compile(
-        r'(?P<date>\d{2} \w{3} \d{4})[\s\n]+(?P<description>[^\n]+)[\s\n]+(?P<value>R\$[\s\n]+\d+[\s\n]*,[\s\n]*\d{2})')
+        r'(?P<date>\d{2} \w{3} \d{4})[\s\n]+(?P<description>[^\n]+)[\s\n]+(?P<value>\+?[\s\n]*R\$[\s\n]+\d+[\s\n]*,[\s\n]*\d{2})')
     TOTAL_VALUE_FOOTER_PATTERN = re.compile(
         r'VALOR TOTAL CARTÃO (?P<last_digits>\d{4})'
     )
+    
+    def get_page(self, document: Document, page_number: int) -> Page:
+        return next(itertools.islice(document.pages(), page_number, page_number+1))
 
-    def read_document_date(self, document):
-        return date.today()
+    def read_bill_date(self, content) -> date:
+        date_string = re.search(self.BILL_DATE_PATTERN, content).group(1)
+        return arrow.get(date_string, 'DD/MM/YYYY').date()
+    
+    def read_bill_value(self, content) -> float:
+        value_string = re.search(self.BILL_VALUE_PATTERN, content).group(1)
+        return utils.convert_brazilian_real_notation_to_decimal(value_string)
     
     def check_if_page_has_credit_card_header(self, page_content: str) -> bool:
         return [match.groupdict() for match in re.finditer(r'\nCARTÃO (?P<first_digits>\d{4})\s+(?P<last_digits>\d{4})', page_content)]
@@ -37,27 +49,33 @@ class InterCreditCardReader:
     def read_transactions_header(self, page_content: str):
         return None
     
+    def read_transactions(self, content: str) -> list[Transaction]:
+        transactions = []
+        raw_transactions = re.finditer(self.TRANSACTION_PATTERN, content)
+        
+        for match in raw_transactions:
+            transactions.append(
+                Transaction(
+                    arrow.get(match.groupdict()['date'], 'DD MMM YYYY', locale='pt-BR').date(),
+                    match.groupdict()['description'],
+                    utils.convert_brazilian_real_notation_to_decimal(
+                        match.groupdict()['value'].replace('+', '-')),
+                )
+            )
+        
+        return transactions
+    
     def read(self, document: Document) -> InterCreditCardBill:
-        bill_date = self.read_document_date(document)
-        value = 100.0
+        first_page = self.get_page(document, 0)
+        bill_date = self.read_bill_date(first_page.get_text())
+        bill_value = self.read_bill_value(first_page.get_text())
+        
+        bill = InterCreditCardBill(bill_date, bill_value, (1,1))
         
         for i, page in enumerate(document):
-            # with open(f'inter_pdf_pages\\page_{i}.json', 'w') as fp:
-            #     json = page.get_text('json')
-            #     fp.write(json)
-            
-            # with open(f'inter_html_pages\\page_{i}.html', 'w') as fp:
-            #     html = page.get_text('html')
-            #     fp.write(html)
+            text = page.get_text()
+            bill.transactions.extend(self.read_transactions(text))
+            # with open(f'inter_text_pages\\page_{i}.txt', 'w', encoding='utf8') as fp:
+            #     fp.write(text)
 
-            with open(f'inter_text_pages\\page_{i}.txt', 'w', encoding='utf8') as fp:
-                text = page.get_text()
-                fp.write(text)
-
-                # print(self.check_if_page_has_credit_card_header(text))
-                print([x for x in re.findall(self.TRANSACTION_PATTERN, text)])
-                # print([x for x in re.findall(self.TOTAL_VALUE_FOOTER_PATTERN, text)])
-        
-        bill = InterCreditCardBill(bill_date, value, (1,1))
-        
         return bill

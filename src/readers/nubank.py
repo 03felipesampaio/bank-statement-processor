@@ -5,24 +5,7 @@ import arrow
 
 from . import Reader, FileExtractor
 from ..models import Transaction
-
-
-# class NubankCreditCardReaderExtractor (FileExtractor):
-    # def open()
-
-def convert_brazilian_real_notation_to_decimal(brazilian_real_value: str):
-    """
-    Convert brazilian money notation to decimal value
-    
-    Ex.: 
-        '-1,25' -> Decimal(-1.25)
-        '25.000,00' -> Decimal(25000.00)
-    """
-    # reais, cents = brazilian_real_value.split(',')
-    # reais = reais.replace('.', '')
-    # return decimal.Decimal('.'.join((reais, cents)))
-    return float(re.sub(r'[\D]', '', brazilian_real_value)) / 100
-
+from .. import utils
 
 
 class NubankTransaction:
@@ -69,7 +52,7 @@ class NubankCreditCardReader:
         page_content = doc[0].get_text()
         value = re.search(r"no\s+valor\s+de\s+R\$\s+([\d\.]+,\d{2})", page_content).groups()[0]
         
-        return convert_brazilian_real_notation_to_decimal(value)
+        return utils.convert_brazilian_real_notation_to_decimal(value)
         
     def add_year_to_transaction_date(self, transaction_date, bill_date) -> datetime:
         if transaction_date == '':
@@ -84,7 +67,7 @@ class NubankCreditCardReader:
     
     def transform_to_transaction(self, raw_transaction: tuple[str, str, str, str], bill_date) -> Transaction:
         transaction_date = self.add_year_to_transaction_date(raw_transaction[0], bill_date)
-        value = convert_brazilian_real_notation_to_decimal(raw_transaction[3])
+        value = utils.convert_brazilian_real_notation_to_decimal(raw_transaction[3])
         return Transaction(transaction_date, raw_transaction[2], value)
     
     def read(self, document: Document) -> NubankCreditCardBill:
