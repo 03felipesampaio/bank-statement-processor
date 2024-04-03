@@ -4,20 +4,8 @@ import arrow
 import re
 import itertools
 
-from ..models import Transaction
+from .. import models
 from .. import utils
-
-class InterCreditCardBill:
-    def __init__(self, bill_date: datetime, value: float, period_of_bill: tuple[datetime, datetime], transactions: list[Transaction] = None) -> None:
-        self.bill_date = bill_date
-        self.value = value
-        self.period_of_bill = period_of_bill
-        
-        if not transactions:
-            self.transactions: list[Transaction] = []
-        else:
-            self.transactions = transactions.copy()
-
 
 class InterCreditCardReader:
     BILL_DATE_PATTERN = r'VENCIMENTO[\s\n]+(?P<date>\d{2}/\d{2}/\d{4})'
@@ -47,28 +35,28 @@ class InterCreditCardReader:
     def read_transactions_header(self, page_content: str):
         return None
     
-    def read_transactions(self, content: str) -> list[Transaction]:
+    def read_transactions(self, content: str) -> list[models.Transaction]:
         transactions = []
         raw_transactions = re.finditer(self.TRANSACTION_PATTERN, content)
         
         for match in raw_transactions:
             transactions.append(
-                Transaction(
+                models.Transaction(
                     arrow.get(match.groupdict()['date'], 'DD MMM YYYY', locale='pt-BR').date(),
                     match.groupdict()['description'],
                     utils.convert_brazilian_real_notation_to_decimal(
-                        match.groupdict()['value'].replace('+', '-')),
+                        match.groupdict()['value'].replace('+', '-'))  # Consider bill payment as a negative value
                 )
             )
         
         return transactions
     
-    def read(self, document: Document) -> InterCreditCardBill:
+    def read(self, document: Document) -> models.CreditCardBill:
         first_page = self.get_page(document, 0)
         bill_date = self.read_bill_date(first_page.get_text())
         bill_value = self.read_bill_value(first_page.get_text())
         
-        bill = InterCreditCardBill(bill_date, bill_value, (1,1))
+        bill = models.CreditCardBill(bill_date, bill_value, (1,1))
         
         for i, page in enumerate(document):
             text = page.get_text()
