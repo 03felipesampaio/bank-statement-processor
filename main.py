@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile
 import fitz
 
-from src.dto import Transaction
+from src import dto
 # from src.readers.inter_statement import InterStatementReader
 from src.readers import Reader, CSVExtractor, NubankCreditCardReader
 from src.readers.inter import InterCreditCardReader
@@ -14,7 +14,7 @@ def hello_world():
     return 'Hello World'
 
 
-@app.post("/nubank/fatura") # , response_model=list[Transaction]
+@app.post("/nubank/fatura", response_model=dto.CreditCardBill)
 def read_nubank_credit_card_bill(file: UploadFile):
     contents = file.file.read()#.decode('utf8')
     document = fitz.Document(stream=contents)
@@ -22,7 +22,7 @@ def read_nubank_credit_card_bill(file: UploadFile):
     return NubankCreditCardReader().read(document)
 
 
-@app.post("/nubank/extrato/csv") # , response_model=list[Transaction]
+@app.post("/nubank/extrato/csv")
 def read_nubank_statement(file: UploadFile):
     # Open file
     contents = file.file.read().decode('utf8')
@@ -31,7 +31,7 @@ def read_nubank_statement(file: UploadFile):
     return transactions
 
 
-@app.post("/inter/fatura") # , response_model=list[Transaction]
+@app.post("/inter/fatura", response_model=dto.CreditCardBill)
 def read_inter_credit_card_bill(file: UploadFile, file_password: str):
     contents = file.file.read()
     document = fitz.Document(stream=contents)
@@ -40,7 +40,7 @@ def read_inter_credit_card_bill(file: UploadFile, file_password: str):
     return InterCreditCardReader().read(document)
 
 
-@app.post("/inter/extrato") # , response_model=list[Transaction]
+@app.post("/inter/extrato")
 def read_inter_statement(file: UploadFile):
     # Open file
     contents = file.file.read().decode('utf8')

@@ -1,31 +1,13 @@
 from fitz import Document
 import re
-from datetime import datetime
+from datetime import datetime, date
 import arrow
 
-from . import Reader, FileExtractor
-from ..models import Transaction
-from .. import utils
+from . import Reader, FileExtractor, CreditCardPDFReader
+from .. import models, utils
 
 
-class NubankTransaction:
-    def __init__(self, date, description, category, value) -> None:
-        pass
-
-
-class NubankCreditCardBill:
-    def __init__(self, bill_date: datetime, value: float, period_of_bill: tuple[datetime, datetime], transactions: list[NubankTransaction] = None) -> None:
-        self.bill_date = bill_date
-        self.value = value
-        self.period_of_bill = period_of_bill
-        
-        if not transactions:
-            self.transactions: list[NubankTransaction] = []
-        else:
-            self.transactions = transactions.copy()
-
-
-class NubankCreditCardReader:
+class NubankCreditCardReader (CreditCardPDFReader):
     def __init__(self) -> None:
         pass
     
@@ -41,11 +23,7 @@ class NubankCreditCardReader:
     def read_document_date(self, doc: Document):
         page_content = doc[1].get_text()
         date = arrow.get(page_content, 'DD MMM YYYY', locale='pt-BR').date()
-        # try:
-        #     date_string = re.search("EMISSÃO E ENVIO\s+(\d{2} \w{3} \d{4})", page_content).groups()[0]
-        # except AttributeError:
-        #     return datetime(2022, 1, 1)
-        # date = datetime.strptime(date_string, '%d %b %Y')
+        
         return date
     
     def get_bill_value(self, doc: Document):
@@ -54,27 +32,30 @@ class NubankCreditCardReader:
         
         return utils.convert_brazilian_real_notation_to_decimal(value)
         
-    def add_year_to_transaction_date(self, transaction_date, bill_date) -> datetime:
+    def add_year_to_transaction_date(self, transaction_date, bill_date: date) -> date:
         if transaction_date == '':
             return None
         
-        if bill_date.month == 1 and 'DEZ' in transaction_date:
-            transaction_datetime = arrow.get(transaction_date + ' ' + str(bill_date.year-1), 'DD MMM YYYY', locale='pt-BR')
-        else:
-            transaction_datetime = arrow.get(transaction_date + ' ' + str(bill_date.year), 'DD MMM YYYY', locale='pt-BR')        
+        bill_year = bill_date.year
         
-        return transaction_datetime.date()
+        # If bill is from January but transaction was in December we need to use last year
+        if bill_date.month == 1 and 'DEZ' in transaction_date:
+            bill_year = bill_year - 1
+            
+        transaction_datetime = arrow.get(transaction_date + ' ' + str(bill_date.year), 'DD MMM YYYY', locale='pt-BR').date()     
+        
+        return transaction_datetime
     
-    def transform_to_transaction(self, raw_transaction: tuple[str, str, str, str], bill_date) -> Transaction:
+    def transform_to_transaction(self, raw_transaction: tuple[str, str, str, str], bill_date) -> models.Transaction:
         transaction_date = self.add_year_to_transaction_date(raw_transaction[0], bill_date)
         value = utils.convert_brazilian_real_notation_to_decimal(raw_transaction[3])
-        return Transaction(transaction_date, raw_transaction[2], value)
+        return models.Transaction(transaction_date, raw_transaction[2], value)
     
-    def read(self, document: Document) -> NubankCreditCardBill:
+    def read(self, document: Document) -> models.CreditCardBill:
         bill_date = self.read_document_date(document)
         bill_value = self.get_bill_value(document)
         
-        credit_bill = NubankCreditCardBill(bill_date, bill_value, (1,1))
+        credit_bill = models.CreditCardBill(bill_date, bill_value, (1,1))
         credit_bill.transactions = [self.transform_to_transaction(x, bill_date) for x in self.get_transactions(document)]
         
         return credit_bill
