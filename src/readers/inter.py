@@ -5,18 +5,7 @@ import re
 import itertools
 
 from ..models import Transaction
-
-
-def convert_brazilian_real_notation_to_decimal(brazilian_real_value: str):
-    """
-    Convert brazilian money notation to decimal value
-    
-    Ex.: 
-        '-1,25' -> Decimal(-1.25)
-        '25.000,00' -> Decimal(25000.00)
-    """
-    return float(re.sub(r'[^\d-]', '', brazilian_real_value)) / 100
-
+from .. import utils
 
 class InterCreditCardBill:
     def __init__(self, bill_date: datetime, value: float, period_of_bill: tuple[datetime, datetime], transactions: list[Transaction] = None) -> None:
@@ -52,7 +41,7 @@ class InterCreditCardReader:
     
     def read_bill_value(self, content) -> float:
         value_string = re.search(self.BILL_VALUE_PATTERN, content).group(1)
-        return convert_brazilian_real_notation_to_decimal(value_string)
+        return utils.convert_brazilian_real_notation_to_decimal(value_string)
     
     def check_if_page_has_credit_card_header(self, page_content: str) -> bool:
         return [match.groupdict() for match in re.finditer(r'\nCARTÃO (?P<first_digits>\d{4})\s+(?P<last_digits>\d{4})', page_content)]
@@ -69,7 +58,7 @@ class InterCreditCardReader:
                 Transaction(
                     arrow.get(match.groupdict()['date'], 'DD MMM YYYY', locale='pt-BR').date(),
                     match.groupdict()['description'],
-                    convert_brazilian_real_notation_to_decimal(
+                    utils.convert_brazilian_real_notation_to_decimal(
                         match.groupdict()['value'].replace('+', '-')),
                 )
             )
