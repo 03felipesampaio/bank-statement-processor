@@ -18,8 +18,6 @@ class InterCreditCardBill:
         else:
             self.transactions = transactions.copy()
 
-    # def add_credit_card(self, first_digi)
-
 
 class InterCreditCardReader:
     BILL_DATE_PATTERN = r'VENCIMENTO[\s\n]+(?P<date>\d{2}/\d{2}/\d{4})'
@@ -75,7 +73,5 @@ class InterCreditCardReader:
         for i, page in enumerate(document):
             text = page.get_text()
             bill.transactions.extend(self.read_transactions(text))
-            # with open(f'inter_text_pages\\page_{i}.txt', 'w', encoding='utf8') as fp:
-            #     fp.write(text)
 
         return bill

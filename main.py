@@ -32,10 +32,10 @@ def read_nubank_statement(file: UploadFile):
 
 
 @app.post("/inter/fatura") # , response_model=list[Transaction]
-def read_inter_credit_card_bill(file: UploadFile):
+def read_inter_credit_card_bill(file: UploadFile, file_password: str):
     contents = file.file.read()
     document = fitz.Document(stream=contents)
-    document.authenticate('031079')
+    document.authenticate(file_password)
     
     return InterCreditCardReader().read(document)
 
