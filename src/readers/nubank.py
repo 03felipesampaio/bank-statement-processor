@@ -65,7 +65,7 @@ class NubankCreditCardReader (CreditCardPDFReader):
         bill_date = self.read_document_date(document)
         bill_value = self.get_bill_value(document)
         
-        credit_bill = models.CreditCardBill(bill_date, bill_value, (1,1))
+        credit_bill = models.CreditCardBill('Nubank', bill_date, bill_value, (1,1))
         credit_bill.transactions = [self.transform_to_transaction(row, bill_date) for row in self.get_transactions(document)]
         
         return credit_bill

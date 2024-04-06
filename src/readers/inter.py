@@ -66,7 +66,7 @@ class InterCreditCardReader:
         bill_date = self.read_bill_date(resume_page.get_text())
         bill_value = self.read_bill_value(resume_page.get_text())
         
-        bill = models.CreditCardBill(bill_date, bill_value, (1,1))
+        bill = models.CreditCardBill('Inter', bill_date, bill_value, (1,1))
         
         for i, page in enumerate(document):
             text = page.get_text()
