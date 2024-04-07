@@ -10,6 +10,8 @@ class Transaction (BaseModel):
     
 
 class CreditCardBill (BaseModel):
+    bank_name: str
+    reference_month: str
     bill_date: date
     value: float
     

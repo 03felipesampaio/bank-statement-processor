@@ -13,17 +13,25 @@ class InterCreditCardReader:
     CREDIT_CARD_HEADER_PATTERN = r'\nCARTÃO (?P<first_digits>\d{4})\s+(?P<last_digits>\d{4})'
     TRANSACTION_HEADER_PATTERN = r'DATA\s*MOVIMENTAÇÃO\s*VALOR'
     TRANSACTION_PATTERN = re.compile(
-        r'(?P<date>\d{2} \w{3} \d{4})[\s\n]+(?P<description>[^\n]+)[\s\n]+(?P<value>\+?[\s\n]*R\$[\s\n]+\d+[\s\n]*,[\s\n]*\d{2})')
+        r'(?P<date>\d{2}[\s\n]+\w{3}[\s\n]+\d{4})[\s\n]+(?P<description>[^\n]+)[\s\n]+(?P<value>\+?[\s\n]*R\$[\s\n]+\d+[\s\n]*,[\s\n]*\d{2})')
     TOTAL_VALUE_FOOTER_PATTERN = re.compile(
         r'VALOR TOTAL CARTÃO (?P<last_digits>\d{4})'
     )
     
-    def get_page(self, document: Document, page_number: int) -> Page:
-        return next(itertools.islice(document.pages(), page_number, page_number+1))
+    def find_resume_page(self, document: Document) -> Page|None:
+        for page in document:
+            if re.search(r'Resumo[\s\n]+da[\s\n]+fatura', page.get_text()):
+                return page
 
     def read_bill_date(self, content) -> date:
-        date_string = re.search(self.BILL_DATE_PATTERN, content).group(1)
-        return arrow.get(date_string, 'DD/MM/YYYY').date()
+        match = re.search(self.BILL_DATE_PATTERN, content)
+        
+        if match:
+            bill_date = arrow.get(match.group(1), 'DD/MM/YYYY').date()
+        else:
+            bill_date = None
+            
+        return bill_date
     
     def read_bill_value(self, content) -> float:
         value_string = re.search(self.BILL_VALUE_PATTERN, content).group(1)
@@ -40,23 +48,25 @@ class InterCreditCardReader:
         raw_transactions = re.finditer(self.TRANSACTION_PATTERN, content)
         
         for match in raw_transactions:
+            row = match.groupdict()
+            
             transactions.append(
                 models.Transaction(
-                    arrow.get(match.groupdict()['date'], 'DD MMM YYYY', locale='pt-BR').date(),
-                    match.groupdict()['description'],
+                    arrow.get(re.sub(r' +', ' ', row['date']), 'DD MMM YYYY', locale='pt-BR').date(),
+                    row['description'],
                     utils.convert_brazilian_real_notation_to_decimal(
-                        match.groupdict()['value'].replace('+', '-'))  # Consider bill payment as a negative value
+                        row['value'].replace('+', '-'))  # Consider bill payment as a negative value
                 )
             )
         
         return transactions
     
     def read(self, document: Document) -> models.CreditCardBill:
-        first_page = self.get_page(document, 0)
-        bill_date = self.read_bill_date(first_page.get_text())
-        bill_value = self.read_bill_value(first_page.get_text())
+        resume_page = self.find_resume_page(document)
+        bill_date = self.read_bill_date(resume_page.get_text())
+        bill_value = self.read_bill_value(resume_page.get_text())
         
-        bill = models.CreditCardBill(bill_date, bill_value, (1,1))
+        bill = models.CreditCardBill('Inter', bill_date, bill_value, (1,1))
         
         for i, page in enumerate(document):
             text = page.get_text()
