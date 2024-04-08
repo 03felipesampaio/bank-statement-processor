@@ -3,7 +3,7 @@ import fitz
 
 from src import dto
 # from src.readers.inter_statement import InterStatementReader
-from src.readers import Reader, CSVExtractor, NubankCreditCardReader
+from src.readers import Reader, CSVExtractor, NubankCreditCardReader, OFXReader
 from src.readers.inter import InterCreditCardReader
 from src.repository import read_file
 
@@ -47,3 +47,21 @@ def read_inter_statement(file: UploadFile):
     transactions = read_file(contents, Reader(CSVExtractor(sep=';', skiprows=5, decimal=',', thousands='.')))
     
     return transactions
+
+
+@app.post("/inter/extrato/ofx")
+def read_inter_statement(file: UploadFile):
+    # Open file
+    contents = file.file#.read()
+
+    bank_statement = OFXReader().read(contents)
+    # print(ofx.__dir__())
+    # print(f"{ofx.headers=}, {ofx.account.account_id=},")
+
+    # with open('ofx_teste.ofx', 'w+b') as fp:
+    #     fp.write(contents)
+
+    # with open('temp.ofx', '')
+    # print(dir(ofx))
+    
+    return bank_statement
