@@ -3,7 +3,7 @@ import fitz
 
 from src import dto
 # from src.readers.inter_statement import InterStatementReader
-from src.readers import Reader, CSVExtractor, NubankCreditCardReader
+from src.readers import Reader, CSVExtractor, NubankCreditCardReader, OFXReader
 from src.readers.inter import InterCreditCardReader
 from src.repository import read_file
 
@@ -23,12 +23,20 @@ def read_nubank_credit_card_bill(file: UploadFile):
 
 
 @app.post("/nubank/extrato/csv")
-def read_nubank_statement(file: UploadFile):
+def read_nubank_statement_csv(file: UploadFile):
     # Open file
     contents = file.file.read().decode('utf8')
     transactions = read_file(contents, Reader(CSVExtractor()))
     
     return transactions
+
+
+@app.post("/nubank/extrato/ofx", response_model=dto.BankStatement)
+def read_nubank_statement_ofx(file: UploadFile):
+    # Open file
+    contents = file.file
+    bank_statement = OFXReader().read(contents)
+    return bank_statement
 
 
 @app.post("/inter/fatura", response_model=dto.CreditCardBill)
@@ -47,3 +55,11 @@ def read_inter_statement(file: UploadFile):
     transactions = read_file(contents, Reader(CSVExtractor(sep=';', skiprows=5, decimal=',', thousands='.')))
     
     return transactions
+
+
+@app.post("/inter/extrato/ofx", response_model=dto.BankStatement)
+def read_inter_statement(file: UploadFile):
+    # Open file
+    contents = file.file
+    bank_statement = OFXReader().read(contents)
+    return bank_statement

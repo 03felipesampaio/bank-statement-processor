@@ -53,13 +53,12 @@ class NubankCreditCardReader (CreditCardPDFReader):
     def transform_to_transaction(self, raw_transaction: tuple[str, str, str, str], bill_date) -> models.Transaction:
         transaction_date = self.add_year_to_transaction_date(raw_transaction[0], bill_date)
         value = utils.convert_brazilian_real_notation_to_decimal(raw_transaction[3])
-        
         # Sometimes a row comes with empty date field and a reference date in description, so we use it as the date
         if transaction_date is None and re.match(r'\d{2} \w{3}\b', raw_transaction[2]):
             match = re.match(r'\d{2} \w{3}\b', raw_transaction[2]).group(0)
             transaction_date = self.add_year_to_transaction_date(match, bill_date)
         
-        return models.Transaction(transaction_date, raw_transaction[2], value)
+        return models.Transaction(transaction_date, 'Compra no crédito', raw_transaction[2], value)
     
     def read(self, document: Document) -> models.CreditCardBill:
         bill_date = self.read_document_date(document)
