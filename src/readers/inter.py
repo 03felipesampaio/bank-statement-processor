@@ -43,6 +43,7 @@ class InterCreditCardReader:
             transactions.append(
                 models.Transaction(
                     arrow.get(match.groupdict()['date'], 'DD MMM YYYY', locale='pt-BR').date(),
+                    'Compra no crédito',
                     match.groupdict()['description'],
                     utils.convert_brazilian_real_notation_to_decimal(
                         match.groupdict()['value'].replace('+', '-'))  # Consider bill payment as a negative value
