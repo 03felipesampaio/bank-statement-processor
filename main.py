@@ -23,12 +23,20 @@ def read_nubank_credit_card_bill(file: UploadFile):
 
 
 @app.post("/nubank/extrato/csv")
-def read_nubank_statement(file: UploadFile):
+def read_nubank_statement_csv(file: UploadFile):
     # Open file
     contents = file.file.read().decode('utf8')
     transactions = read_file(contents, Reader(CSVExtractor()))
     
     return transactions
+
+
+@app.post("/nubank/extrato/ofx", response_model=dto.BankStatement)
+def read_nubank_statement_ofx(file: UploadFile):
+    # Open file
+    contents = file.file
+    bank_statement = OFXReader().read(contents)
+    return bank_statement
 
 
 @app.post("/inter/fatura", response_model=dto.CreditCardBill)
@@ -49,19 +57,9 @@ def read_inter_statement(file: UploadFile):
     return transactions
 
 
-@app.post("/inter/extrato/ofx")
+@app.post("/inter/extrato/ofx", response_model=dto.BankStatement)
 def read_inter_statement(file: UploadFile):
     # Open file
-    contents = file.file#.read()
-
+    contents = file.file
     bank_statement = OFXReader().read(contents)
-    # print(ofx.__dir__())
-    # print(f"{ofx.headers=}, {ofx.account.account_id=},")
-
-    # with open('ofx_teste.ofx', 'w+b') as fp:
-    #     fp.write(contents)
-
-    # with open('temp.ofx', '')
-    # print(dir(ofx))
-    
     return bank_statement
