@@ -1,4 +1,4 @@
-from fitz import Document
+import fitz
 import re
 from datetime import datetime, date
 import arrow
@@ -11,26 +11,26 @@ class NubankCreditCardReader (CreditCardPDFReader):
     def __init__(self) -> None:
         pass
     
-    def get_transactions(self, doc: Document):
-        transactions = []
-        for page in doc:
-            tables = page.find_tables()
-            for table in tables:
-                transactions.extend(table.extract())
+    # def get_transactions(self, doc: fitz.Document):
+    #     transactions = []
+    #     for page in doc:
+    #         tables = page.find_tables()
+    #         for table in tables:
+    #             transactions.extend(table.extract())
     
-        # Removes all blank rows
-        transactions = [row for row in transactions if not all((field == '' for field in row))]
+    #     # Removes all blank rows
+    #     transactions = [row for row in transactions if not all((field == '' for field in row))]
     
-        return transactions
+    #     return transactions
     
-    def read_document_date(self, doc: Document) -> date:
+    def read_document_date(self, doc: fitz.Document) -> date:
         page_content = doc[0].get_text()
         date_string = re.search(r'VENCIMENTO:?\s+(?P<date>\d{2}\s+\w{3}\s+\d{4})', page_content, flags=re.IGNORECASE).groupdict()['date']
         bill_date = arrow.get(date_string, 'DD MMM YYYY', locale='pt-BR').date()
         
         return bill_date
     
-    def get_bill_value(self, doc: Document):
+    def get_bill_value(self, doc: fitz.Document):
         page_content = doc[0].get_text()
         value = re.search(r"no\s+valor\s+de\s+R\$\s+([\d\.]+,\d{2})", page_content).groups()[0]
         
@@ -60,11 +60,38 @@ class NubankCreditCardReader (CreditCardPDFReader):
         
         return models.Transaction(transaction_date, 'Compra no crédito', raw_transaction[2], value)
     
-    def read(self, document: Document) -> models.CreditCardBill:
+
+    def read_transactions(self, document: fitz.Document) -> list[str]:
+        # Green color: (108, 192, 13)    
+        POSITIVE_TRANSACTION_GREEN = (108, 192, 13)
+        transactions = []
+
+        # https://pymupdf.readthedocs.io/en/latest/recipes-text.html#how-to-extract-text-with-color
+        # Iter through pages and search for specic color font
+        for page in document:
+            text_blocks = page.get_text("dict", flags=fitz.TEXTFLAGS_TEXT)["blocks"]
+            for block in text_blocks:
+                if len(block['lines']) != 3:
+                    continue
+                
+                date_span, descr_span, value_span = map(lambda x: x['spans'][0], block['lines'])
+
+                if not re.match(r'\d{2} \w{3}', date_span['text']) or not re.match(r'\d+,\d{2}', value_span['text']):
+                    continue
+
+                value = value_span['text'] if fitz.sRGB_to_rgb(value_span['color']) != POSITIVE_TRANSACTION_GREEN else '-' + value_span['text']
+
+                # TODO Still cant get category, so for now category will be set to None
+                transaction = (date_span['text'], None, descr_span['text'], value)
+                transactions.append(transaction)
+
+        return transactions
+    
+    def read(self, document: fitz.Document) -> models.CreditCardBill:
         bill_date = self.read_document_date(document)
         bill_value = self.get_bill_value(document)
         
         credit_bill = models.CreditCardBill('Nubank', bill_date, bill_value, (1,1))
-        credit_bill.transactions = [self.transform_to_transaction(row, bill_date) for row in self.get_transactions(document)]
+        credit_bill.transactions = [self.transform_to_transaction(row, bill_date) for row in self.read_transactions(document)]
         
         return credit_bill
