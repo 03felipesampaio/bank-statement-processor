@@ -3,3 +3,7 @@ __pycache__
 .vscode
 statements
 .pytest_cache
+.coverage
+coverage.*
+
+reference_statements
