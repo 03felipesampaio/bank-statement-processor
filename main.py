@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile
 import fitz
+import os
 
 from src import dto
 # from src.readers.inter_statement import InterStatementReader
@@ -58,8 +59,17 @@ def read_inter_statement(file: UploadFile):
 
 
 @app.post("/inter/extrato/ofx", response_model=dto.BankStatement)
-def read_inter_statement(file: UploadFile):
+def read_inter_statement_ofx(file: UploadFile):
     # Open file
     contents = file.file
-    bank_statement = OFXReader().read(contents)
+    
+    # Gambiarra total rsrsrs
+    # CONSERTAR ISSO PELO AMOR DE DEUS
+    # Create a temporary file to fix encoding problem
+    with open('inter_temp.ofx', 'wb') as fp:
+        fp.write(contents.read())
+    with open('inter_temp.ofx', 'r', encoding='utf8') as fp:
+        bank_statement = OFXReader().read(fp)
+    os.unlink('inter_temp.ofx')
+    
     return bank_statement
