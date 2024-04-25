@@ -58,7 +58,7 @@ class NubankCreditCardReader (CreditCardPDFReader):
             match = re.match(r'\d{2} \w{3}\b', raw_transaction[2]).group(0)
             transaction_date = self.add_year_to_transaction_date(match, bill_date)
         
-        return models.Transaction(transaction_date, 'Compra no crédito', raw_transaction[2], value)
+        return models.Transaction(transaction_date, None, raw_transaction[2], value)
     
 
     def read_transactions(self, document: fitz.Document) -> list[str]:

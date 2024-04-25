@@ -4,7 +4,7 @@ from datetime import date
 
 class Transaction (BaseModel):
     date: date
-    type: str
+    type: str|None
     description: str
     category: str|None
     value: float
