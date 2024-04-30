@@ -62,12 +62,20 @@ class InterCreditCardReader:
         
         return transactions
     
+    def get_bill_period(self, bill_date: date):
+        # https://ajuda.inter.co/cartao/qual-sera-a-data-de-vencimento-da-minha-fatura/
+        start_date = arrow.get(bill_date).shift(months=-1, days=-7)
+        end_date = arrow.get(bill_date).shift(days=-8)
+
+        return start_date.date(), end_date.date()
+    
     def read(self, document: Document) -> models.CreditCardBill:
         resume_page = self.find_resume_page(document)
         bill_date = self.read_bill_date(resume_page.get_text())
         bill_value = self.read_bill_value(resume_page.get_text())
+        start_date, end_date = self.get_bill_period(bill_date)
         
-        bill = models.CreditCardBill('Inter', bill_date, bill_value, (1,1))
+        bill = models.CreditCardBill('Inter', bill_date, bill_value, start_date, end_date)
         
         for i, page in enumerate(document):
             text = page.get_text()
