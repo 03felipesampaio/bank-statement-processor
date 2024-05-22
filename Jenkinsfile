@@ -1,9 +1,11 @@
 pipeline {
-    agent { label 'docker-agent-alpine' }
+    agent {
+        docker {image 'python:latest'}
+    }
     stages {
         stage('build') {
             steps {
-                sh 'echo "New version 1"'
+                sh 'python --version'
             }
         }
     }
