@@ -35,6 +35,13 @@ class NubankCreditCardReader (CreditCardPDFReader):
         value = re.search(r"no\s+valor\s+de\s+R\$\s+([\d\.]+,\d{2})", page_content).groups()[0]
         
         return utils.convert_brazilian_real_notation_to_decimal(value)
+    
+    def get_bill_period(self, bill_date: date):
+        # https://blog.nubank.com.br/data-de-vencimento-data-fechamento-cartao-de-credito/
+        start_date = arrow.get(bill_date).shift(months=-1, days=-7)
+        end_date = arrow.get(bill_date).shift(days=-8)
+
+        return start_date.date(), end_date.date()
         
     def add_year_to_transaction_date(self, transaction_date, bill_date: date) -> date:
         if transaction_date == '':
@@ -58,7 +65,7 @@ class NubankCreditCardReader (CreditCardPDFReader):
             match = re.match(r'\d{2} \w{3}\b', raw_transaction[2]).group(0)
             transaction_date = self.add_year_to_transaction_date(match, bill_date)
         
-        return models.Transaction(transaction_date, 'Compra no crédito', raw_transaction[2], value)
+        return models.Transaction(transaction_date, None, raw_transaction[2], value)
     
 
     def read_transactions(self, document: fitz.Document) -> list[str]:
@@ -90,8 +97,9 @@ class NubankCreditCardReader (CreditCardPDFReader):
     def read(self, document: fitz.Document) -> models.CreditCardBill:
         bill_date = self.read_document_date(document)
         bill_value = self.get_bill_value(document)
+        start_date, end_date = self.get_bill_period(bill_date)
         
-        credit_bill = models.CreditCardBill('Nubank', bill_date, bill_value, (1,1))
+        credit_bill = models.CreditCardBill('Nubank', bill_date, bill_value, start_date, end_date)
         credit_bill.transactions = [self.transform_to_transaction(row, bill_date) for row in self.read_transactions(document)]
         
         return credit_bill
