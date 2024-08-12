@@ -15,6 +15,18 @@ class NubankBillReader(CreditCardPDFReader):
     
     def __init__(self) -> None:
         pass
+    
+    
+    def is_valid(self, document: fitz.Document) -> bool:
+        """Checks if the document is a valid Nubank bill.
+        
+        Args:
+            document (fitz.Document): The document object.
+            
+        Returns:
+            bool: True if the document is a valid Nubank bill, False otherwise.
+        """
+        return "Esta é a sua fatura" in document[0].get_text().lower()
 
     # def get_transactions(self, doc: fitz.Document):
     #     transactions = []
@@ -159,7 +171,7 @@ class NubankBillReader(CreditCardPDFReader):
 
                 # TODO Still cant get category, so for now category will be set to None
                 transaction = (date_span["text"], None, descr_span["text"], value)
-                transactions.append(self.transform_to_transaction(transaction))
+                transactions.append(transaction)
 
         return transactions
 
@@ -171,6 +183,6 @@ class NubankBillReader(CreditCardPDFReader):
         credit_bill = models.CreditCardBill(
             "Nubank", bill_date, bill_value, start_date, end_date
         )
-        credit_bill.transactions = self.read_transactions(document)
+        credit_bill.transactions = [self.transform_to_transaction(t, bill_date) for t in self.read_transactions(document)]
 
         return credit_bill
