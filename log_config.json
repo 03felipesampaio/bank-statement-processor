@@ -37,8 +37,7 @@
             "level": "DEBUG",
             "handlers": [
                 "stdout",
-                "file",
-                "stderr"
+                "file"
             ]
         }
     }
