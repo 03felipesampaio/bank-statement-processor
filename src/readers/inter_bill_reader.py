@@ -22,6 +22,17 @@ class InterBillReader(CreditCardPDFReader):
     TOTAL_VALUE_FOOTER_PATTERN = re.compile(
         r"VALOR TOTAL CARTÃO (?P<last_digits>\d{4})"
     )
+    
+    def is_valid(self, document: Document) -> bool:
+        """Checks if the document is a valid Inter bill.
+        
+        Args:
+            document (Document): The document object.
+            
+        Returns:
+            bool: True if the document is a valid Inter bill, False otherwise.
+        """
+        return "Resumo da fatura" in document[0].get_text()
 
     def find_resume_page(self, document: Document) -> Page | None:
         for page in document:

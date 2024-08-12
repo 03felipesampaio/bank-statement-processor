@@ -15,6 +15,18 @@ class NubankBillReader(CreditCardPDFReader):
     
     def __init__(self) -> None:
         pass
+    
+    
+    def is_valid(self, document: fitz.Document) -> bool:
+        """Checks if the document is a valid Nubank bill.
+        
+        Args:
+            document (fitz.Document): The document object.
+            
+        Returns:
+            bool: True if the document is a valid Nubank bill, False otherwise.
+        """
+        return "Esta é a sua fatura" in document[0].get_text().lower()
 
     # def get_transactions(self, doc: fitz.Document):
     #     transactions = []
