@@ -5,15 +5,14 @@ import os
 from src import dto
 
 # from src.readers.inter_statement import InterStatementReader
-from src.readers import Reader, CSVExtractor, NubankBillReader, OFXReader
+from src.readers import NubankBillReader, OFXReader
 from src.readers.inter_bill_reader import InterBillReader
-from src.repository import read_file
 
 app = FastAPI()
 
 
 @app.get("/")
-def hello_world():
+async def hello_world():
     return (
         "Welcome to Bank Statement Processor. "
         "For more info go to /docs or directly to repository "
@@ -22,7 +21,7 @@ def hello_world():
 
 
 @app.post("/nubank/bills", response_model=dto.CreditCardBill, tags=["Nubank"])
-def read_nubank_credit_card_bill(bill: UploadFile):
+async def read_nubank_credit_card_bill(bill: UploadFile):
     """Read Nubank credit card bill from PDF file.
     You can find your bill files in your email.
     """
@@ -33,7 +32,7 @@ def read_nubank_credit_card_bill(bill: UploadFile):
 
 
 @app.post("/nubank/statements", response_model=dto.BankStatement, tags=["Nubank"])
-def read_nubank_statement_ofx(statement: UploadFile):
+async def read_nubank_statement_ofx(statement: UploadFile):
     """Read Nubank statement from OFX file.
     You can export yout statement from Nubank app to your email
     and then load it here.
@@ -47,7 +46,7 @@ def read_nubank_statement_ofx(statement: UploadFile):
 
 
 @app.post("/inter/bills", response_model=dto.CreditCardBill, tags=["Inter"])
-def read_inter_credit_card_bill(bill: UploadFile, file_password: str):
+async def read_inter_credit_card_bill(bill: UploadFile, file_password: str):
     """Read Inter credit card bill from PDF file.
     You can find your bill files in your email."""
     contents = bill.file.read()
@@ -58,7 +57,7 @@ def read_inter_credit_card_bill(bill: UploadFile, file_password: str):
 
 
 @app.post("/inter/statements", response_model=dto.BankStatement, tags=["Inter"])
-def read_inter_statement_ofx(statement: UploadFile):
+async def read_inter_statement_ofx(statement: UploadFile):
     """Read Inter statement from OFX file.
     You can export your statement from the bank app
     or from the bank web page.
