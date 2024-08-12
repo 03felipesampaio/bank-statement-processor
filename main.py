@@ -1,6 +1,12 @@
 from fastapi import FastAPI, UploadFile
+from contextlib import asynccontextmanager
 import fitz
 import os
+import logging
+from pathlib import Path
+import json
+import atexit
+import time
 
 from src import dto
 
@@ -8,7 +14,25 @@ from src import dto
 from src.readers import NubankBillReader, OFXReader
 from src.readers.inter_bill_reader import InterBillReader
 
-app = FastAPI()
+
+logger = logging.getLogger("statement_processor")
+
+
+def setup_logging():
+    log_dir_path = Path(__file__).parent / "logs"
+    log_dir_path.mkdir(exist_ok=True)
+
+    config_file = Path(__file__).parent / "log_config.json"
+    logging.config.dictConfig(json.loads(config_file.read_text()))
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    setup_logging()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/")
@@ -25,10 +49,14 @@ async def read_nubank_credit_card_bill(bill: UploadFile):
     """Read Nubank credit card bill from PDF file.
     You can find your bill files in your email.
     """
+    start_time = time.time()
+    logger.info(f"Reading Nubank's bill file '{bill.filename}'")
     contents = bill.file.read()  # .decode('utf8')
     document = fitz.Document(stream=contents)
-
-    return NubankBillReader().read(document)
+    bill = NubankBillReader().read(document)
+    end_time = time.time()
+    logger.info(f"Processed Nubank's bill file '{bill.filename}' in {end_time - start_time:.2f} seconds")
+    return bill
 
 
 @app.post("/nubank/statements", response_model=dto.BankStatement, tags=["Nubank"])
@@ -39,9 +67,12 @@ async def read_nubank_statement_ofx(statement: UploadFile):
 
     This is the most recommended way to load your statement.
     """
-    # Open file
+    start_time = time.time()
+    logger.info(f"Reading Nubank's statement file '{statement.filename}'")
     contents = statement.file
     bank_statement = OFXReader().read(contents)
+    end_time = time.time()
+    logger.info(f"Processed Nubank's statement file '{statement.filename}' in {end_time - start_time:.2f} seconds")
     return bank_statement
 
 
@@ -49,11 +80,15 @@ async def read_nubank_statement_ofx(statement: UploadFile):
 async def read_inter_credit_card_bill(bill: UploadFile, file_password: str):
     """Read Inter credit card bill from PDF file.
     You can find your bill files in your email."""
+    start_time = time.time()
+    logger.info(f"Reading Inter's bill file '{bill.filename}'")
     contents = bill.file.read()
     document = fitz.Document(stream=contents)
     document.authenticate(file_password)
-
-    return InterBillReader().read(document)
+    bill = InterBillReader().read(document)
+    end_time = time.time()
+    logger.info(f"Processed Inter's bill file '{bill.filename}' in {end_time - start_time:.2f} seconds")
+    return bill
 
 
 @app.post("/inter/statements", response_model=dto.BankStatement, tags=["Inter"])
@@ -67,7 +102,8 @@ async def read_inter_statement_ofx(statement: UploadFile):
 
     The statements extracted from the bank web page have more information.
     """
-    # Open file
+    start_time = time.time()
+    logger.info(f"Reading Inter's statement file '{statement.filename}'")
     contents = statement.file
 
     # Gambiarra total rsrsrs
@@ -78,5 +114,6 @@ async def read_inter_statement_ofx(statement: UploadFile):
     with open("inter_temp.ofx", "r", encoding="utf8") as fp:
         bank_statement = OFXReader().read(fp)
     os.unlink("inter_temp.ofx")
-
+    end_time = time.time()
+    logger.info(f"Processed Inter's statement file '{statement.filename}' in {end_time - start_time:.2f} seconds")
     return bank_statement
