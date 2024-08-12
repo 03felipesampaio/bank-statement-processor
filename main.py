@@ -5,9 +5,8 @@ import os
 from src import dto
 
 # from src.readers.inter_statement import InterStatementReader
-from src.readers import Reader, CSVExtractor, NubankBillReader, OFXReader
+from src.readers import NubankBillReader, OFXReader
 from src.readers.inter_bill_reader import InterBillReader
-from src.repository import read_file
 
 app = FastAPI()
 
