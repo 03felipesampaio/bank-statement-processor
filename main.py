@@ -3,73 +3,81 @@ import fitz
 import os
 
 from src import dto
+
 # from src.readers.inter_statement import InterStatementReader
-from src.readers import Reader, CSVExtractor, NubankCreditCardReader, OFXReader
-from src.readers.inter import InterCreditCardReader
+from src.readers import Reader, CSVExtractor, NubankBillReader, OFXReader
+from src.readers.inter_bill_reader import InterBillReader
 from src.repository import read_file
 
 app = FastAPI()
 
+
 @app.get("/")
 def hello_world():
-    return 'Hello World'
+    return (
+        "Welcome to Bank Statement Processor. "
+        "For more info go to /docs or directly to repository "
+        "https://github.com/03felipesampaio/bank-statement-processor"
+    )
 
 
-@app.post("/nubank/fatura", response_model=dto.CreditCardBill)
-def read_nubank_credit_card_bill(file: UploadFile):
-    contents = file.file.read()#.decode('utf8')
+@app.post("/nubank/bills", response_model=dto.CreditCardBill, tags=["Nubank"])
+def read_nubank_credit_card_bill(bill: UploadFile):
+    """Read Nubank credit card bill from PDF file.
+    You can find your bill files in your email.
+    """
+    contents = bill.file.read()  # .decode('utf8')
     document = fitz.Document(stream=contents)
-    
-    return NubankCreditCardReader().read(document)
+
+    return NubankBillReader().read(document)
 
 
-@app.post("/nubank/extrato/csv")
-def read_nubank_statement_csv(file: UploadFile):
+@app.post("/nubank/statements", response_model=dto.BankStatement, tags=["Nubank"])
+def read_nubank_statement_ofx(statement: UploadFile):
+    """Read Nubank statement from OFX file.
+    You can export yout statement from Nubank app to your email
+    and then load it here.
+
+    This is the most recommended way to load your statement.
+    """
     # Open file
-    contents = file.file.read().decode('utf8')
-    transactions = read_file(contents, Reader(CSVExtractor()))
-    
-    return transactions
-
-
-@app.post("/nubank/extrato/ofx", response_model=dto.BankStatement)
-def read_nubank_statement_ofx(file: UploadFile):
-    # Open file
-    contents = file.file
+    contents = statement.file
     bank_statement = OFXReader().read(contents)
     return bank_statement
 
 
-@app.post("/inter/fatura", response_model=dto.CreditCardBill)
-def read_inter_credit_card_bill(file: UploadFile, file_password: str):
-    contents = file.file.read()
+@app.post("/inter/bills", response_model=dto.CreditCardBill, tags=["Inter"])
+def read_inter_credit_card_bill(bill: UploadFile, file_password: str):
+    """Read Inter credit card bill from PDF file.
+    You can find your bill files in your email."""
+    contents = bill.file.read()
     document = fitz.Document(stream=contents)
     document.authenticate(file_password)
-    
-    return InterCreditCardReader().read(document)
+
+    return InterBillReader().read(document)
 
 
-@app.post("/inter/extrato")
-def read_inter_statement(file: UploadFile):
+@app.post("/inter/statements", response_model=dto.BankStatement, tags=["Inter"])
+def read_inter_statement_ofx(statement: UploadFile):
+    """Read Inter statement from OFX file.
+    You can export your statement from the bank app
+    or from the bank web page.
+
+    This is the most recommend way of loading your statement.
+
+
+    The statements extracted from the bank web page have more information.
+    """
     # Open file
-    contents = file.file.read().decode('utf8')
-    transactions = read_file(contents, Reader(CSVExtractor(sep=';', skiprows=5, decimal=',', thousands='.')))
-    
-    return transactions
+    contents = statement.file
 
-
-@app.post("/inter/extrato/ofx", response_model=dto.BankStatement)
-def read_inter_statement_ofx(file: UploadFile):
-    # Open file
-    contents = file.file
-    
     # Gambiarra total rsrsrs
     # CONSERTAR ISSO PELO AMOR DE DEUS
     # Create a temporary file to fix encoding problem
-    with open('inter_temp.ofx', 'wb') as fp:
+    with open("inter_temp.ofx", "wb") as fp:
         fp.write(contents.read())
-    with open('inter_temp.ofx', 'r', encoding='utf8') as fp:
+    with open("inter_temp.ofx", "r", encoding="utf8") as fp:
         bank_statement = OFXReader().read(fp)
-    os.unlink('inter_temp.ofx')
-    
+    os.unlink("inter_temp.ofx")
+
     return bank_statement

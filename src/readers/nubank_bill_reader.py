@@ -3,11 +3,11 @@ import re
 from datetime import datetime, date
 import arrow
 
-from . import Reader, FileExtractor, CreditCardPDFReader
+from . import CreditCardPDFReader
 from .. import models, utils
 
 
-class NubankCreditCardReader (CreditCardPDFReader):
+class NubankBillReader (CreditCardPDFReader):
     def __init__(self) -> None:
         pass
     
