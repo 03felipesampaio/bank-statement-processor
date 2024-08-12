@@ -6,7 +6,7 @@ from src import dto
 
 # from src.readers.inter_statement import InterStatementReader
 from src.readers import Reader, CSVExtractor, NubankBillReader, OFXReader
-from src.readers.inter import InterCreditCardReader
+from src.readers.inter_bill_reader import InterBillReader
 from src.repository import read_file
 
 app = FastAPI()
@@ -62,7 +62,7 @@ def read_inter_credit_card_bill(bill: UploadFile, file_password: str):
     document = fitz.Document(stream=contents)
     document.authenticate(file_password)
 
-    return InterCreditCardReader().read(document)
+    return InterBillReader().read(document)
 
 
 @app.post("/inter/statements", tags=["Inter"])

@@ -7,7 +7,7 @@ import itertools
 from .. import models
 from .. import utils
 
-class InterCreditCardReader:
+class InterBillReader:
     BILL_DATE_PATTERN = r'VENCIMENTO[\s\n]+(?P<date>\d{2}/\d{2}/\d{4})'
     BILL_VALUE_PATTERN = r'TOTAL DESSA FATURA[\s\n]+R\$[\s\n]+(?P<value>[\d.]+,\d{2})'
     CREDIT_CARD_HEADER_PATTERN = r'\nCARTÃO (?P<first_digits>\d{4})\s+(?P<last_digits>\d{4})'
