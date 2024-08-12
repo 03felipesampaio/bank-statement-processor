@@ -1,8 +1,7 @@
-from datetime import datetime, date
+from datetime import date
 from fitz import Document, Page
 import arrow
 import re
-import itertools
 
 from .credit_card_pdf_reader import CreditCardPDFReader
 from .. import models
@@ -34,12 +33,30 @@ class InterBillReader(CreditCardPDFReader):
         """
         return "Resumo da fatura" in document[0].get_text()
 
-    def find_resume_page(self, document: Document) -> Page | None:
+    def find_resume_page(self, document: Document) -> Page:
+        """Finds the page with billing information. Includind the bill date and value.
+        
+        Args:
+            document (Document): The document object.
+        
+        Returns:
+            Page: The page with billing information.
+        """
         for page in document:
             if re.search(r"Resumo[\s\n]+da[\s\n]+fatura", page.get_text()):
                 return page
+        
+        raise ValueError("Resume page not found in document")
 
-    def read_bill_date(self, content) -> date:
+    def read_bill_date(self, content: str) -> date:
+        """Reads the bill date from the resume page.
+        
+        Args:
+            content (str): The text content of the resume page.
+            
+        Returns:
+            date: The bill date.
+        """
         match = re.search(self.BILL_DATE_PATTERN, content)
 
         if match:
@@ -49,7 +66,15 @@ class InterBillReader(CreditCardPDFReader):
 
         return bill_date
 
-    def read_bill_value(self, content) -> float:
+    def read_bill_value(self, content: str) -> float:
+        """Reads the bill value from the resume page.
+        
+        Args:
+            content (str): The text content of the resume page.
+        
+        Returns:
+            float: The bill value.
+        """
         value_string = re.search(self.BILL_VALUE_PATTERN, content).group(1)
         return utils.convert_brazilian_real_notation_to_decimal(value_string)
 
@@ -62,10 +87,16 @@ class InterBillReader(CreditCardPDFReader):
             )
         ]
 
-    def read_transactions_header(self, page_content: str):
-        return None
-
     def read_transactions(self, content: str) -> list[models.Transaction]:
+        """Reads the transactions from the page.
+        
+        Args:
+            content (str): The text content of the page.
+            
+        Returns:
+            list[Transaction]: The list of transactions.
+            
+        """
         transactions = []
         raw_transactions = re.finditer(self.TRANSACTION_PATTERN, content)
 
@@ -88,6 +119,16 @@ class InterBillReader(CreditCardPDFReader):
         return transactions
 
     def get_bill_period(self, bill_date: date):
+        """Returns the start and end date of the bill period.
+        
+        Source: https://ajuda.inter.co/cartao/qual-sera-a-data-de-vencimento-da-minha-fatura/
+        
+        Args:
+            bill_date (date): The bill date.
+        
+        Returns:
+            tuple[date, date]: The start and end date of the bill period.    
+        """
         # https://ajuda.inter.co/cartao/qual-sera-a-data-de-vencimento-da-minha-fatura/
         start_date = arrow.get(bill_date).shift(months=-1, days=-7)
         end_date = arrow.get(bill_date).shift(days=-8)
@@ -96,8 +137,9 @@ class InterBillReader(CreditCardPDFReader):
 
     def read(self, document: Document) -> models.CreditCardBill:
         resume_page = self.find_resume_page(document)
-        bill_date = self.read_bill_date(resume_page.get_text())
-        bill_value = self.read_bill_value(resume_page.get_text())
+        resume_page_content = resume_page.get_text()
+        bill_date = self.read_bill_date(resume_page_content)
+        bill_value = self.read_bill_value(resume_page_content)
         start_date, end_date = self.get_bill_period(bill_date)
 
         bill = models.CreditCardBill(
