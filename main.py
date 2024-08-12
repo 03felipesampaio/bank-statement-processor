@@ -14,7 +14,11 @@ app = FastAPI()
 
 @app.get("/")
 def hello_world():
-    return "Hello World"
+    return (
+        "Welcome to Bank Statement Processor. "
+        "For more info go to /docs or directly to repository "
+        "https://github.com/03felipesampaio/bank-statement-processor"
+    )
 
 
 @app.post("/nubank/bills", response_model=dto.CreditCardBill, tags=["Nubank"])
@@ -28,19 +32,7 @@ def read_nubank_credit_card_bill(bill: UploadFile):
     return NubankBillReader().read(document)
 
 
-@app.post("/nubank/statements/csv", tags=["Nubank"])
-def read_nubank_statement_csv(statement: UploadFile):
-    """Read Nubank statement from CSV file.
-    You can export yout statement from Nubank app to your email
-    and then load it here."""
-    # Open file
-    contents = statement.file.read().decode("utf8")
-    transactions = read_file(contents, Reader(CSVExtractor()))
-
-    return transactions
-
-
-@app.post("/nubank/statements/ofx", response_model=dto.BankStatement, tags=["Nubank"])
+@app.post("/nubank/statements", response_model=dto.BankStatement, tags=["Nubank"])
 def read_nubank_statement_ofx(statement: UploadFile):
     """Read Nubank statement from OFX file.
     You can export yout statement from Nubank app to your email
@@ -65,19 +57,7 @@ def read_inter_credit_card_bill(bill: UploadFile, file_password: str):
     return InterBillReader().read(document)
 
 
-@app.post("/inter/statements", tags=["Inter"])
-def read_inter_statement(statement: UploadFile):
-    """Read Inter statement from CSV file."""
-    # Open file
-    contents = statement.file.read().decode("utf8")
-    transactions = read_file(
-        contents, Reader(CSVExtractor(sep=";", skiprows=5, decimal=",", thousands="."))
-    )
-
-    return transactions
-
-
-@app.post("/inter/statements/ofx", response_model=dto.BankStatement, tags=["Inter"])
+@app.post("/inter/statements", response_model=dto.BankStatement, tags=["Inter"])
 def read_inter_statement_ofx(statement: UploadFile):
     """Read Inter statement from OFX file.
     You can export your statement from the bank app
