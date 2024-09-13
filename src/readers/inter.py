@@ -13,7 +13,7 @@ class InterCreditCardReader:
     CREDIT_CARD_HEADER_PATTERN = r'\nCARTÃO (?P<first_digits>\d{4})\s+(?P<last_digits>\d{4})'
     TRANSACTION_HEADER_PATTERN = r'DATA\s*MOVIMENTAÇÃO\s*VALOR'
     TRANSACTION_PATTERN = re.compile(
-        r'(?P<date>\d{2}[\s\n]+\w{3}[\s\n]+\d{4})[\s\n]+(?P<description>[^\n]+)[\s\n]+(?P<value>\+?[\s\n]*R\$[\s\n]+\d+[\s\n]*,[\s\n]*\d{2})')
+        r'(?P<date>\d{2}[\s\n]+\w{3}[\s\n]+\d{4})[\s\n]+(?P<description>[^\n]+)[\s\n]+(?P<value>\+?[\s\n]*R\$[\s\n]+[\d.]+[\s\n]*,[\s\n]*\d{2})')
     TOTAL_VALUE_FOOTER_PATTERN = re.compile(
         r'VALOR TOTAL CARTÃO (?P<last_digits>\d{4})'
     )
@@ -39,10 +39,7 @@ class InterCreditCardReader:
     
     def check_if_page_has_credit_card_header(self, page_content: str) -> bool:
         return [match.groupdict() for match in re.finditer(r'\nCARTÃO (?P<first_digits>\d{4})\s+(?P<last_digits>\d{4})', page_content)]
-    
-    def read_transactions_header(self, page_content: str):
-        return None
-    
+        
     def read_transactions(self, content: str) -> list[models.Transaction]:
         transactions = []
         raw_transactions = re.finditer(self.TRANSACTION_PATTERN, content)
