@@ -1,9 +1,9 @@
 import fitz
 import re
-from datetime import datetime, date
+from datetime import date
 import arrow
 
-from . import Reader, FileExtractor, CreditCardPDFReader
+from . import CreditCardPDFReader
 from .. import models, utils
 
 
@@ -23,15 +23,13 @@ class NubankCreditCardReader (CreditCardPDFReader):
     
     #     return transactions
     
-    def read_document_date(self, doc: fitz.Document) -> date:
-        page_content = doc[0].get_text()
+    def read_document_date(self, page_content: str) -> date:
         date_string = re.search(r'VENCIMENTO:?\s+(?P<date>\d{2}\s+\w{3}\s+\d{4})', page_content, flags=re.IGNORECASE).groupdict()['date']
         bill_date = arrow.get(date_string, 'DD MMM YYYY', locale='pt-BR').date()
         
         return bill_date
     
-    def get_bill_value(self, doc: fitz.Document):
-        page_content = doc[0].get_text()
+    def get_bill_value(self, page_content: str):
         value = re.search(r"no\s+valor\s+de\s+R\$\s+([\d\.]+,\d{2})", page_content).groups()[0]
         
         return utils.convert_brazilian_real_notation_to_decimal(value)
@@ -43,17 +41,18 @@ class NubankCreditCardReader (CreditCardPDFReader):
 
         return start_date.date(), end_date.date()
         
-    def add_year_to_transaction_date(self, transaction_date, bill_date: date) -> date:
+    def add_year_to_transaction_date(self, transaction_date: str, bill_date: date) -> date:
         if transaction_date == '':
             return None
         
         bill_year = bill_date.year
         
         # If bill is from January but transaction was in December we need to use last year
-        if bill_date.month == 1 and 'DEZ' in transaction_date:
+        # FIXME bill_date.month == 2 is a workaround, month should be related to the bill period
+        if bill_date.month == 2 and transaction_date.endswith('DEZ'):
             bill_year = bill_year - 1
             
-        transaction_datetime = arrow.get(transaction_date + ' ' + str(bill_date.year), 'DD MMM YYYY', locale='pt-BR').date()     
+        transaction_datetime = arrow.get(transaction_date + ' ' + str(bill_year), 'DD MMM YYYY', locale='pt-BR').date()     
         
         return transaction_datetime
     
@@ -95,8 +94,8 @@ class NubankCreditCardReader (CreditCardPDFReader):
         return transactions
     
     def read(self, document: fitz.Document) -> models.CreditCardBill:
-        bill_date = self.read_document_date(document)
-        bill_value = self.get_bill_value(document)
+        bill_date = self.read_document_date(document[0].get_text())
+        bill_value = self.get_bill_value(document[0].get_text())
         start_date, end_date = self.get_bill_period(bill_date)
         
         credit_bill = models.CreditCardBill('Nubank', bill_date, bill_value, start_date, end_date)
