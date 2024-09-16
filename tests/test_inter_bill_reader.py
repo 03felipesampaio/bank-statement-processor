@@ -33,6 +33,7 @@ def test_read_transactions():
     assert [t.description for t in transactions] == ["Taco Bell", "Pagto Debito Automatico", "Amazon Marketplace"]
     assert [t.value for t in transactions] == [58.89, -1140.07, 111.70]
 
+
 def test_get_bill_period():
     reader = InterBillReader()
     # TODO Add a test for the case where the bill starts in the last month of the year and ends in the first month of the next year
