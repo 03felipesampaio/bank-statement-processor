@@ -16,7 +16,7 @@ class InterBillReader(CreditCardPDFReader):
     )
     TRANSACTION_HEADER_PATTERN = r"DATA\s*MOVIMENTAÇÃO\s*VALOR"
     TRANSACTION_PATTERN = re.compile(
-        r"(?P<date>\d{2}[\s\n]+\w{3}[\s\n]+\d{4})[\s\n]+(?P<description>[^\n]+)[\s\n]+(?P<value>\+?[\s\n]*R\$[\s\n]+\d+[\s\n]*,[\s\n]*\d{2})"
+        r"(?P<date>\d{2}[\s\n]+\w{3}[\s\n]+\d{4})[\s\n]+(?P<description>[^\n]+[^+])[\s\n]+(?P<value>\+?[\s\n]*R\$[\s\n]+[\d.]+[\s\n]*,[\s\n]*\d{2})"
     )
     TOTAL_VALUE_FOOTER_PATTERN = re.compile(
         r"VALOR TOTAL CARTÃO (?P<last_digits>\d{4})"
