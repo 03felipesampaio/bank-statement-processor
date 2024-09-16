@@ -80,8 +80,8 @@ class NubankBillReader(CreditCardPDFReader):
 
         return value
 
-    def read_bill_period(self, bill_date: date):
-        """Reads or calculate the start and end date of the bill period.
+    def get_bill_period(self, bill_date: date):
+        """Gets the start and end date of the bill period.
         
         Nubank bills are closed 7 days before the bill date. Source:
         https://blog.nubank.com.br/data-de-vencimento-data-fechamento-cartao-de-credito/
@@ -117,10 +117,27 @@ class NubankBillReader(CreditCardPDFReader):
     def transform_to_transaction(
         self, raw_transaction: tuple[str, str, str, str], bill_date
     ) -> models.Transaction:
+        """Transforms a raw transaction tuple into a Transaction object.
+
+        Args:
+            raw_transaction (tuple[str, str, str, str]): A tuple with the raw transaction data. The fields are:
+                - date: The transaction date.
+                - category: The transaction category.
+                - description: The transaction description.
+                - value: The transaction value.
+            bill_date (date): The bill date.
+        
+        Returns:
+            models.Transaction: A Transaction object.
+        """
+
+        # The date is in the format "DD MMM", so we need to add the year
         transaction_date = self.add_year_to_transaction_date(
             raw_transaction[0], bill_date
         )
+
         value = utils.convert_brazilian_real_notation_to_decimal(raw_transaction[3])
+        
         # Sometimes a row comes with empty date field and a reference date in description, so we use it as the date
         if transaction_date is None and re.match(r"\d{2} \w{3}\b", raw_transaction[2]):
             match = re.match(r"\d{2} \w{3}\b", raw_transaction[2]).group(0)
