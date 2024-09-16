@@ -26,7 +26,9 @@ class NubankBillReader(CreditCardPDFReader):
         Returns:
             bool: True if the document is a valid Nubank bill, False otherwise.
         """
-        return "Esta é a sua fatura" in document[0].get_text().lower()
+        # TODO Only the more recent bills have the "Esta é a sua fatura" string in the first page
+        # return "Esta é a sua fatura" in document[0].get_text().lower()
+        return True
 
     # def get_transactions(self, doc: fitz.Document):
     #     transactions = []
@@ -195,7 +197,7 @@ class NubankBillReader(CreditCardPDFReader):
     def read(self, document: fitz.Document) -> models.CreditCardBill:
         bill_date = self.read_bill_date(document[0].get_text())
         bill_value = self.read_bill_value(document[0].get_text())
-        start_date, end_date = self.read_bill_period(bill_date)
+        start_date, end_date = self.get_bill_period(bill_date)
 
         credit_bill = models.CreditCardBill(
             "Nubank", bill_date, bill_value, start_date, end_date
