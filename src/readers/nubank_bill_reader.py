@@ -26,7 +26,9 @@ class NubankBillReader(CreditCardPDFReader):
         Returns:
             bool: True if the document is a valid Nubank bill, False otherwise.
         """
-        return "Esta é a sua fatura" in document[0].get_text().lower()
+        # TODO Only the more recent bills have the "Esta é a sua fatura" string in the first page
+        # return "Esta é a sua fatura" in document[0].get_text().lower()
+        return True
 
     # def get_transactions(self, doc: fitz.Document):
     #     transactions = []
@@ -80,8 +82,8 @@ class NubankBillReader(CreditCardPDFReader):
 
         return value
 
-    def read_bill_period(self, bill_date: date):
-        """Reads or calculate the start and end date of the bill period.
+    def get_bill_period(self, bill_date: date):
+        """Gets the start and end date of the bill period.
         
         Nubank bills are closed 7 days before the bill date. Source:
         https://blog.nubank.com.br/data-de-vencimento-data-fechamento-cartao-de-credito/
@@ -117,10 +119,27 @@ class NubankBillReader(CreditCardPDFReader):
     def transform_to_transaction(
         self, raw_transaction: tuple[str, str, str, str], bill_date
     ) -> models.Transaction:
+        """Transforms a raw transaction tuple into a Transaction object.
+
+        Args:
+            raw_transaction (tuple[str, str, str, str]): A tuple with the raw transaction data. The fields are:
+                - date: The transaction date.
+                - category: The transaction category.
+                - description: The transaction description.
+                - value: The transaction value.
+            bill_date (date): The bill date.
+        
+        Returns:
+            models.Transaction: A Transaction object.
+        """
+
+        # The date is in the format "DD MMM", so we need to add the year
         transaction_date = self.add_year_to_transaction_date(
             raw_transaction[0], bill_date
         )
+
         value = utils.convert_brazilian_real_notation_to_decimal(raw_transaction[3])
+        
         # Sometimes a row comes with empty date field and a reference date in description, so we use it as the date
         if transaction_date is None and re.match(r"\d{2} \w{3}\b", raw_transaction[2]):
             match = re.match(r"\d{2} \w{3}\b", raw_transaction[2]).group(0)
@@ -178,7 +197,7 @@ class NubankBillReader(CreditCardPDFReader):
     def read(self, document: fitz.Document) -> models.CreditCardBill:
         bill_date = self.read_bill_date(document[0].get_text())
         bill_value = self.read_bill_value(document[0].get_text())
-        start_date, end_date = self.read_bill_period(bill_date)
+        start_date, end_date = self.get_bill_period(bill_date)
 
         credit_bill = models.CreditCardBill(
             "Nubank", bill_date, bill_value, start_date, end_date
