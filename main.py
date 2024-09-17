@@ -233,3 +233,9 @@ async def read_inter_statement_ofx(statement: UploadFile):
     )
 
     return bank_statement
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host=os.getenv("HOST", '0.0.0.0'), port=int(os.getenv("PORT", 8000)))
