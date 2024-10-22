@@ -304,13 +304,13 @@ async def read_inter_statement_ofx(statement: UploadFile, output_format: OUTPUT_
     elif output_format == OUTPUT_FILE_TYPE.CSV:
         return Response(
             file_types.write_statement_as(output_format, bank_statement).getvalue(),
-            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.reference_month}.csv"},
+            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.csv"},
             media_type="text/csv",
         )
     elif output_format == OUTPUT_FILE_TYPE.XLSX:
         return Response(
             file_types.write_statement_as(output_format, bank_statement).getvalue(),
-            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.reference_month}.xlsx"},
+            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.xlsx"},
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
