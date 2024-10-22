@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException, UploadFile, Depends
-from fastapi.responses import JSONResponse, FileResponse, Response
-from starlette.background import BackgroundTask
+from fastapi.responses import Response
 from contextlib import asynccontextmanager
 import fitz
 import os
@@ -9,7 +8,6 @@ from pathlib import Path
 import json
 import time
 from enum import Enum
-import tempfile
 
 from src import dto, file_types
 
@@ -25,6 +23,7 @@ class OUTPUT_FILE_TYPE(str, Enum):
     JSON = "json"
     CSV = "csv"
     XLSX = "xlsx"
+    PARQUET = "parquet"
     # OFX = "OFX"
 
 
@@ -114,6 +113,14 @@ async def read_nubank_credit_card_bill(
             },
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
+    elif output_format == OUTPUT_FILE_TYPE.PARQUET:
+        return Response(
+            file_types.write_bill_as(output_format, bill_model).getvalue(),
+            headers={
+                "Content-Disposition": f"attachment; filename=nubank_bill_{bill_model.reference_month}.parquet"
+            },
+            media_type="application/vnd.apache.parquet",
+        )
 
 
 @app.post(
@@ -172,6 +179,12 @@ async def read_nubank_statement_ofx(statement: UploadFile, output_format: OUTPUT
             file_types.write_statement_as(output_format, bank_statement).getvalue(),
             headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.xlsx"},
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    elif output_format == OUTPUT_FILE_TYPE.PARQUET:
+        return Response(
+            file_types.write_statement_as(output_format, bank_statement).getvalue(),
+            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.parquet"},
+            media_type="application/vnd.apache.parquet",
         )
 
 
@@ -244,6 +257,14 @@ async def read_inter_credit_card_bill(
             },
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
+    elif output_format == OUTPUT_FILE_TYPE.PARQUET:
+        return Response(
+            file_types.write_bill_as(output_format, bill_model).getvalue(),
+            headers={
+                "Content-Disposition": f"attachment; filename=inter_bill_{bill_model.reference_month}.parquet"
+            },
+            media_type="application/vnd.apache.parquet",
+        )
 
 
 @app.post(
@@ -304,14 +325,20 @@ async def read_inter_statement_ofx(statement: UploadFile, output_format: OUTPUT_
     elif output_format == OUTPUT_FILE_TYPE.CSV:
         return Response(
             file_types.write_statement_as(output_format, bank_statement).getvalue(),
-            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.reference_month}.csv"},
+            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.csv"},
             media_type="text/csv",
         )
     elif output_format == OUTPUT_FILE_TYPE.XLSX:
         return Response(
             file_types.write_statement_as(output_format, bank_statement).getvalue(),
-            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.reference_month}.xlsx"},
+            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.xlsx"},
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    elif output_format == OUTPUT_FILE_TYPE.PARQUET:
+        return Response(
+            file_types.write_statement_as(output_format, bank_statement).getvalue(),
+            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.parquet"},
+            media_type="application/vnd.apache.parquet",
         )
 
 
