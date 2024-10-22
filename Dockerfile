@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
 
 COPY ./src /app/src
 COPY ./main.py /app/main.py
+COPY ./landing_page.html /app/landing_page.html
 COPY ./log_config.json /app/log_config.json
 
 CMD ["python", "main.py"]
