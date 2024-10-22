@@ -1,14 +1,17 @@
-from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi import FastAPI, HTTPException, UploadFile, Depends
+from fastapi.responses import JSONResponse, FileResponse, Response
+from starlette.background import BackgroundTask
 from contextlib import asynccontextmanager
 import fitz
 import os
 import logging
 from pathlib import Path
 import json
-import atexit
 import time
+from enum import Enum
+import tempfile
 
-from src import dto
+from src import dto, file_types
 
 # from src.readers.inter_statement import InterStatementReader
 from src.readers import NubankBillReader, OFXReader
@@ -16,6 +19,13 @@ from src.readers.inter_bill_reader import InterBillReader
 
 
 logger = logging.getLogger("statement_processor")
+
+
+class OUTPUT_FILE_TYPE(str, Enum):
+    JSON = "json"
+    CSV = "csv"
+    XLSX = "xlsx"
+    # OFX = "OFX"
 
 
 def setup_logging():
@@ -46,7 +56,7 @@ async def hello_world():
 
 @app.post(
     "/nubank/bills",
-    response_model=dto.CreditCardBill,
+    # response_model=dto.CreditCardBill,
     tags=["Nubank"],
     responses={
         400: {
@@ -54,7 +64,10 @@ async def hello_world():
         }
     },
 )
-async def read_nubank_credit_card_bill(bill: UploadFile):
+async def read_nubank_credit_card_bill(
+    bill: UploadFile,
+    output_format: OUTPUT_FILE_TYPE = OUTPUT_FILE_TYPE.JSON,
+):
     """Read Nubank credit card bill from PDF file.
     You can find your bill files in your email.
     """
@@ -82,7 +95,25 @@ async def read_nubank_credit_card_bill(bill: UploadFile):
     logger.info(
         f"Processed Nubank's bill file '{bill.filename}' in {end_time - start_time:.2f} seconds"
     )
-    return bill_model
+
+    if output_format == OUTPUT_FILE_TYPE.JSON:
+        return bill_model
+    elif output_format == OUTPUT_FILE_TYPE.CSV:
+        return Response(
+            file_types.write_bill_as(output_format, bill_model).getvalue(),
+            headers={
+                "Content-Disposition": f"attachment; filename=nubank_bill_{bill_model.reference_month}.csv"
+            },
+            media_type="text/csv",
+        )
+    elif output_format == OUTPUT_FILE_TYPE.XLSX:
+        return Response(
+            file_types.write_bill_as(output_format, bill_model).getvalue(),
+            headers={
+                "Content-Disposition": f"attachment; filename=nubank_bill_{bill_model.reference_month}.xlsx"
+            },
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 
 @app.post(
@@ -91,7 +122,7 @@ async def read_nubank_credit_card_bill(bill: UploadFile):
     tags=["Nubank"],
     responses={400: {"description": "Invalid content type, must be an OFX file"}},
 )
-async def read_nubank_statement_ofx(statement: UploadFile):
+async def read_nubank_statement_ofx(statement: UploadFile, output_format: OUTPUT_FILE_TYPE = OUTPUT_FILE_TYPE.JSON):
     """Read Nubank statement from OFX file.
     You can export yout statement from Nubank app to your email
     and then load it here.
@@ -113,26 +144,40 @@ async def read_nubank_statement_ofx(statement: UploadFile):
     contents = statement.file
 
     bank_statement = OFXReader().read(contents)
-    
+
     if bank_statement.bank_name != "NU PAGAMENTOS S.A.":
         logger.error(f"Invalid Nubank's statement file '{statement.filename}'")
         raise HTTPException(
             400,
             f"This is not a valid Nubank statement file, this is a {bank_statement.bank_name} statement file. Please upload a valid one.",
         )
-        
+
     bank_statement.bank_name = "Nubank"
 
     end_time = time.time()
     logger.info(
         f"Processed Nubank's statement file '{statement.filename}' in {end_time - start_time:.2f} seconds"
     )
-    return bank_statement
+    
+    if output_format == OUTPUT_FILE_TYPE.JSON:
+        return bank_statement
+    elif output_format == OUTPUT_FILE_TYPE.CSV:
+        return Response(
+            file_types.write_statement_as(output_format, bank_statement).getvalue(),
+            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.csv"},
+            media_type="text/csv",
+        )
+    elif output_format == OUTPUT_FILE_TYPE.XLSX:
+        return Response(
+            file_types.write_statement_as(output_format, bank_statement).getvalue(),
+            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.xlsx"},
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 
 @app.post(
     "/inter/bills",
-    response_model=dto.CreditCardBill,
+    # response_model=dto.CreditCardBill,
     tags=["Inter"],
     responses={
         401: {"description": "Invalid password"},
@@ -141,7 +186,11 @@ async def read_nubank_statement_ofx(statement: UploadFile):
         },
     },
 )
-async def read_inter_credit_card_bill(bill: UploadFile, file_password: str):
+async def read_inter_credit_card_bill(
+    bill: UploadFile,
+    file_password: str,
+    output_format: OUTPUT_FILE_TYPE = OUTPUT_FILE_TYPE.JSON,
+):
     """Read Inter credit card bill from PDF file.
     You can find your bill files in your email."""
     start_time = time.time()
@@ -176,7 +225,25 @@ async def read_inter_credit_card_bill(bill: UploadFile, file_password: str):
     logger.info(
         f"Processed Inter's bill file '{bill.filename}' in {end_time - start_time:.2f} seconds"
     )
-    return bill_model
+
+    if output_format == OUTPUT_FILE_TYPE.JSON:
+        return bill_model
+    elif output_format == OUTPUT_FILE_TYPE.CSV:
+        return Response(
+            file_types.write_bill_as(output_format, bill_model).getvalue(),
+            headers={
+                "Content-Disposition": f"attachment; filename=inter_bill_{bill_model.reference_month}.csv"
+            },
+            media_type="text/csv",
+        )
+    elif output_format == OUTPUT_FILE_TYPE.XLSX:
+        return Response(
+            file_types.write_bill_as(output_format, bill_model).getvalue(),
+            headers={
+                "Content-Disposition": f"attachment; filename=inter_bill_{bill_model.reference_month}.xlsx"
+            },
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 
 @app.post(
@@ -185,7 +252,7 @@ async def read_inter_credit_card_bill(bill: UploadFile, file_password: str):
     tags=["Inter"],
     responses={400: {"description": "Invalid content type, must be an OFX file"}},
 )
-async def read_inter_statement_ofx(statement: UploadFile):
+async def read_inter_statement_ofx(statement: UploadFile, output_format: OUTPUT_FILE_TYPE = OUTPUT_FILE_TYPE.JSON):
     """Read Inter statement from OFX file.
     You can export your statement from the bank app
     or from the bank web page.
@@ -224,7 +291,7 @@ async def read_inter_statement_ofx(statement: UploadFile):
             400,
             f"This is not a valid Inter statement file, this is a {bank_statement.bank_name} statement file. Please upload a valid one.",
         )
-        
+
     bank_statement.bank_name = "Inter"
 
     end_time = time.time()
@@ -232,10 +299,25 @@ async def read_inter_statement_ofx(statement: UploadFile):
         f"Processed Inter's statement file '{statement.filename}' in {end_time - start_time:.2f} seconds"
     )
 
-    return bank_statement
+    if output_format == OUTPUT_FILE_TYPE.JSON:
+        return bank_statement
+    elif output_format == OUTPUT_FILE_TYPE.CSV:
+        return Response(
+            file_types.write_statement_as(output_format, bank_statement).getvalue(),
+            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.reference_month}.csv"},
+            media_type="text/csv",
+        )
+    elif output_format == OUTPUT_FILE_TYPE.XLSX:
+        return Response(
+            file_types.write_statement_as(output_format, bank_statement).getvalue(),
+            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.reference_month}.xlsx"},
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host=os.getenv("HOST", '0.0.0.0'), port=int(os.getenv("PORT", 8000)))
+    uvicorn.run(
+        app, host=os.getenv("HOST", "0.0.0.0"), port=int(os.getenv("PORT", 8000))
+    )
