@@ -46,7 +46,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/", response_class=HTMLResponse)
 async def hello_world():
-    html_content = Path('src/landing_page.html').read_text()
+    html_content = Path('./landing_page.html').read_text()
     return HTMLResponse(content=html_content, status_code=200)
     # return (
     #     "Welcome to Bank Statement Processor. "
