@@ -13,7 +13,7 @@ import io
 import datetime
 
 
-FILE_FORMAT = Literal["csv", "xlsx", "ofx"]
+FILE_FORMAT = Literal["csv", "xlsx", "ofx", "parquet"]
 
 
 def bill_to_dataframe(bill: models.CreditCardBill) -> pd.DataFrame:
@@ -66,7 +66,7 @@ def write_bill_as(file_format: FILE_FORMAT, bill: models.CreditCardBill) -> io.B
     """Converts a Bill object to a file in the specified format.
 
     Args:
-        file_format: The format of the file to be generated ("csv", "xlsx", "ofx").
+        file_format: The format of the file to be generated ("csv", "xlsx", "ofx", "parquet").
         bill: The Bill object to be converted.
 
     Returns:
@@ -87,6 +87,9 @@ def write_bill_as(file_format: FILE_FORMAT, bill: models.CreditCardBill) -> io.B
             float_format="%.2f",
             freeze_panes=(1, 0),
         )
+    elif file_format == "parquet":
+        df = bill_to_dataframe(bill)
+        df.to_parquet(file_content, index=False)
     elif file_format == "ofx":
         raise NotImplementedError("OFX file format is not yet supported")
 
@@ -99,7 +102,7 @@ def write_statement_as(
     """Converts a BankStatement object to a file in the specified format.
 
     Args:
-        file_format: The format of the file to be generated ("csv", "xlsx", "ofx").
+        file_format: The format of the file to be generated ("csv", "xlsx", "ofx", "parquet").
         statement: The Bill object to be converted.
 
     Returns:
@@ -120,6 +123,9 @@ def write_statement_as(
             float_format="%.2f",
             freeze_panes=(1, 0),
         )
+    elif file_format == "parquet":
+        df = statement_to_dataframe(statement)
+        df.to_parquet(file_content, index=False)
     elif file_format == "ofx":
         raise NotImplementedError("OFX file format is not yet supported")
 
@@ -160,4 +166,8 @@ if __name__ == "__main__":
     file_content = write_bill_as("xlsx", bill)
 
     with open("files/test_bill.xlsx", "wb") as f:
+        f.write(file_content.getvalue())
+
+    with open('files/test_bill.parquet', 'wb') as f:
+        file_content = write_bill_as("parquet", bill)
         f.write(file_content.getvalue())
