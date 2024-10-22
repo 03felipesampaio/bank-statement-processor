@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, UploadFile, Depends
-from fastapi.responses import Response
+from fastapi.responses import Response, HTMLResponse
 from contextlib import asynccontextmanager
 import fitz
 import os
@@ -44,13 +44,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def hello_world():
-    return (
-        "Welcome to Bank Statement Processor. "
-        "For more info go to /docs or directly to repository "
-        "https://github.com/03felipesampaio/bank-statement-processor"
-    )
+    html_content = Path('./landing_page.html').read_text()
+    return HTMLResponse(content=html_content, status_code=200)
+    # return (
+    #     "Welcome to Bank Statement Processor. "
+    #     "For more info go to /docs or directly to repository "
+    #     "https://github.com/03felipesampaio/bank-statement-processor"
+    # )
 
 
 @app.post(
@@ -64,26 +66,26 @@ async def hello_world():
     },
 )
 async def read_nubank_credit_card_bill(
-    bill: UploadFile,
+    upload_file: UploadFile,
     output_format: OUTPUT_FILE_TYPE = OUTPUT_FILE_TYPE.JSON,
 ):
     """Read Nubank credit card bill from PDF file.
     You can find your bill files in your email.
     """
     start_time = time.time()
-    logger.info(f"Reading Nubank's bill file '{bill.filename}'")
+    logger.info(f"Reading Nubank's bill file '{upload_file.filename}'")
 
-    if bill.content_type != "application/pdf":
-        logger.error(f"Invalid content type for Nubank's bill file '{bill.filename}'")
+    if upload_file.content_type != "application/pdf":
+        logger.error(f"Invalid content type for Nubank's bill file '{upload_file.filename}'")
         raise HTTPException(
             400,
-            f"Invalid content type. The file must be a PDF. Got '{bill.content_type}'",
+            f"Invalid content type. The file must be a PDF. Got '{upload_file.content_type}'",
         )
 
-    contents = await bill.read()  # .decode('utf8')
+    contents = await upload_file.read()  # .decode('utf8')
     document = fitz.Document(stream=contents)
     if not NubankBillReader().is_valid(document):
-        logger.error(f"Invalid Nubank's bill file '{bill.filename}'")
+        logger.error(f"Invalid Nubank's bill file '{upload_file.filename}'")
         raise HTTPException(
             400, "This is not a valid Nubank bill file. Please upload a valid one."
         )
@@ -92,7 +94,7 @@ async def read_nubank_credit_card_bill(
 
     end_time = time.time()
     logger.info(
-        f"Processed Nubank's bill file '{bill.filename}' in {end_time - start_time:.2f} seconds"
+        f"Processed Nubank's bill file '{upload_file.filename}' in {end_time - start_time:.2f} seconds"
     )
 
     if output_format == OUTPUT_FILE_TYPE.JSON:
@@ -129,7 +131,7 @@ async def read_nubank_credit_card_bill(
     tags=["Nubank"],
     responses={400: {"description": "Invalid content type, must be an OFX file"}},
 )
-async def read_nubank_statement_ofx(statement: UploadFile, output_format: OUTPUT_FILE_TYPE = OUTPUT_FILE_TYPE.JSON):
+async def read_nubank_statement_ofx(upload_file: UploadFile, output_format: OUTPUT_FILE_TYPE = OUTPUT_FILE_TYPE.JSON):
     """Read Nubank statement from OFX file.
     You can export yout statement from Nubank app to your email
     and then load it here.
@@ -137,23 +139,23 @@ async def read_nubank_statement_ofx(statement: UploadFile, output_format: OUTPUT
     This is the most recommended way to load your statement.
     """
     start_time = time.time()
-    logger.info(f"Reading Nubank's statement file '{statement.filename}'")
+    logger.info(f"Reading Nubank's statement file '{upload_file.filename}'")
 
-    if statement.content_type != "application/octet-stream":
+    if upload_file.content_type != "application/octet-stream":
         logger.error(
-            f"Invalid content type for Nubank's statement file '{statement.filename}'"
+            f"Invalid content type for Nubank's statement file '{upload_file.filename}'"
         )
         raise HTTPException(
             400,
-            f"Invalid content type. The file must be an OFX. Got '{statement.content_type}'",
+            f"Invalid content type. The file must be an OFX. Got '{upload_file.content_type}'",
         )
 
-    contents = statement.file
+    contents = upload_file.file
 
     bank_statement = OFXReader().read(contents)
 
     if bank_statement.bank_name != "NU PAGAMENTOS S.A.":
-        logger.error(f"Invalid Nubank's statement file '{statement.filename}'")
+        logger.error(f"Invalid Nubank's statement file '{upload_file.filename}'")
         raise HTTPException(
             400,
             f"This is not a valid Nubank statement file, this is a {bank_statement.bank_name} statement file. Please upload a valid one.",
@@ -163,7 +165,7 @@ async def read_nubank_statement_ofx(statement: UploadFile, output_format: OUTPUT
 
     end_time = time.time()
     logger.info(
-        f"Processed Nubank's statement file '{statement.filename}' in {end_time - start_time:.2f} seconds"
+        f"Processed Nubank's statement file '{upload_file.filename}' in {end_time - start_time:.2f} seconds"
     )
     
     if output_format == OUTPUT_FILE_TYPE.JSON:
@@ -200,34 +202,34 @@ async def read_nubank_statement_ofx(statement: UploadFile, output_format: OUTPUT
     },
 )
 async def read_inter_credit_card_bill(
-    bill: UploadFile,
+    upload_file: UploadFile,
     file_password: str,
     output_format: OUTPUT_FILE_TYPE = OUTPUT_FILE_TYPE.JSON,
 ):
     """Read Inter credit card bill from PDF file.
     You can find your bill files in your email."""
     start_time = time.time()
-    logger.info(f"Reading Inter's bill file '{bill.filename}'")
+    logger.info(f"Reading Inter's bill file '{upload_file.filename}'")
 
-    if bill.content_type != "application/pdf":
-        logger.error(f"Invalid content type for Inter's bill file '{bill.filename}'")
+    if upload_file.content_type != "application/pdf":
+        logger.error(f"Invalid content type for Inter's bill file '{upload_file.filename}'")
         raise HTTPException(
             400,
-            f"Invalid content type. The file must be a PDF. Got '{bill.content_type}'",
+            f"Invalid content type. The file must be a PDF. Got '{upload_file.content_type}'",
         )
 
-    contents = await bill.read()
+    contents = await upload_file.read()
 
     document = fitz.Document(stream=contents)
     if document.authenticate(file_password) == 0:
-        logger.error(f"Invalid password for Inter's bill file '{bill.filename}'")
+        logger.error(f"Invalid password for Inter's bill file '{upload_file.filename}'")
         raise HTTPException(
             401,
             "Invalid password. Usually the password is the first 6 digits of your CPF.",
         )
 
     if not InterBillReader().is_valid(document):
-        logger.error(f"Invalid Inter's bill file '{bill.filename}'")
+        logger.error(f"Invalid Inter's bill file '{upload_file.filename}'")
         raise HTTPException(
             400, "This is not a valid Inter bill file. Please upload a valid one."
         )
@@ -236,7 +238,7 @@ async def read_inter_credit_card_bill(
 
     end_time = time.time()
     logger.info(
-        f"Processed Inter's bill file '{bill.filename}' in {end_time - start_time:.2f} seconds"
+        f"Processed Inter's bill file '{upload_file.filename}' in {end_time - start_time:.2f} seconds"
     )
 
     if output_format == OUTPUT_FILE_TYPE.JSON:
@@ -273,7 +275,7 @@ async def read_inter_credit_card_bill(
     tags=["Inter"],
     responses={400: {"description": "Invalid content type, must be an OFX file"}},
 )
-async def read_inter_statement_ofx(statement: UploadFile, output_format: OUTPUT_FILE_TYPE = OUTPUT_FILE_TYPE.JSON):
+async def read_inter_statement_ofx(upload_file: UploadFile, output_format: OUTPUT_FILE_TYPE = OUTPUT_FILE_TYPE.JSON):
     """Read Inter statement from OFX file.
     You can export your statement from the bank app
     or from the bank web page.
@@ -284,18 +286,18 @@ async def read_inter_statement_ofx(statement: UploadFile, output_format: OUTPUT_
     The statements extracted from the bank web page have more information.
     """
     start_time = time.time()
-    logger.info(f"Reading Inter's statement file '{statement.filename}'")
+    logger.info(f"Reading Inter's statement file '{upload_file.filename}'")
 
-    if statement.content_type != "application/octet-stream":
+    if upload_file.content_type != "application/octet-stream":
         logger.error(
-            f"Invalid content type for Inter's statement file '{statement.filename}'"
+            f"Invalid content type for Inter's statement file '{upload_file.filename}'"
         )
         raise HTTPException(
             400,
-            f"Invalid content type. The file must be an OFX. Got '{statement.content_type}'",
+            f"Invalid content type. The file must be an OFX. Got '{upload_file.content_type}'",
         )
 
-    contents = await statement.read()
+    contents = await upload_file.read()
 
     # Gambiarra total rsrsrs
     # CONSERTAR ISSO PELO AMOR DE DEUS
@@ -307,7 +309,7 @@ async def read_inter_statement_ofx(statement: UploadFile, output_format: OUTPUT_
     os.unlink("inter_temp.ofx")
 
     if bank_statement.bank_name != "Banco Intermedium S/A":
-        logger.error(f"Invalid Inter's statement file '{statement.filename}'")
+        logger.error(f"Invalid Inter's statement file '{upload_file.filename}'")
         raise HTTPException(
             400,
             f"This is not a valid Inter statement file, this is a {bank_statement.bank_name} statement file. Please upload a valid one.",
@@ -317,7 +319,7 @@ async def read_inter_statement_ofx(statement: UploadFile, output_format: OUTPUT_
 
     end_time = time.time()
     logger.info(
-        f"Processed Inter's statement file '{statement.filename}' in {end_time - start_time:.2f} seconds"
+        f"Processed Inter's statement file '{upload_file.filename}' in {end_time - start_time:.2f} seconds"
     )
 
     if output_format == OUTPUT_FILE_TYPE.JSON:
