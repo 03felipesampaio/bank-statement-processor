@@ -6,5 +6,6 @@ statements
 .coverage
 coverage.*
 logs
+files/
 
 reference_statements
