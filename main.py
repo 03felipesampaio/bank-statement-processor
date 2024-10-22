@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException, UploadFile, Depends
-from fastapi.responses import JSONResponse, FileResponse, Response
-from starlette.background import BackgroundTask
+from fastapi.responses import Response
 from contextlib import asynccontextmanager
 import fitz
 import os
@@ -9,7 +8,6 @@ from pathlib import Path
 import json
 import time
 from enum import Enum
-import tempfile
 
 from src import dto, file_types
 
