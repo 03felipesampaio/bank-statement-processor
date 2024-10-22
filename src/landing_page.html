@@ -84,15 +84,22 @@
 
             const formData = new FormData();
             formData.append('upload_file', file);
-            // formData.append('output_format', outputFormat);
 
             let url = `/${bank}/${documentType}s?output_format=${outputFormat}`;
 
             const xhr = new XMLHttpRequest();
             xhr.open('POST', url, true);
+            xhr.responseType = 'blob'; // Set the response type to blob for file download
             xhr.onload = function() {
                 if (xhr.status === 200) {
-                    alert('File uploaded successfully.');
+                    const blob = xhr.response;
+                    const downloadUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = `output.${outputFormat}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
                 } else {
                     alert('Failed to upload file.');
                 }
