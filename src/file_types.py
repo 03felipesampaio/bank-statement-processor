@@ -63,7 +63,15 @@ def statement_to_dataframe(statement: models.BankStatement) -> pd.DataFrame:
 
 
 def write_bill_as(file_format: FILE_FORMAT, bill: models.CreditCardBill) -> io.BytesIO:
-    """Converts a Bill object to a file in the specified format."""
+    """Converts a Bill object to a file in the specified format.
+
+    Args:
+        file_format: The format of the file to be generated ("csv", "xlsx", "ofx").
+        bill: The Bill object to be converted.
+
+    Returns:
+        The file content as a BytesIO object.
+    """
 
     file_content = io.BytesIO()
 
@@ -72,14 +80,53 @@ def write_bill_as(file_format: FILE_FORMAT, bill: models.CreditCardBill) -> io.B
         df.to_csv(file_content, index=False, quoting=csv.QUOTE_NONNUMERIC)
     elif file_format == "xlsx":
         df = bill_to_dataframe(bill)
-        df.to_excel(file_content, sheet_name='Bill', index=False, float_format="%.2f", freeze_panes=(1, 0))
+        df.to_excel(
+            file_content,
+            sheet_name="Bill",
+            index=False,
+            float_format="%.2f",
+            freeze_panes=(1, 0),
+        )
     elif file_format == "ofx":
         raise NotImplementedError("OFX file format is not yet supported")
-    
+
     return file_content
 
 
-if __name__ == '__main__':
+def write_statement_as(
+    file_format: FILE_FORMAT, statement: models.BankStatement
+) -> io.BytesIO:
+    """Converts a BankStatement object to a file in the specified format.
+
+    Args:
+        file_format: The format of the file to be generated ("csv", "xlsx", "ofx").
+        statement: The Bill object to be converted.
+
+    Returns:
+        The file content as a BytesIO object.
+    """
+
+    file_content = io.BytesIO()
+
+    if file_format == "csv":
+        df = statement_to_dataframe(statement)
+        df.to_csv(file_content, index=False, quoting=csv.QUOTE_NONNUMERIC)
+    elif file_format == "xlsx":
+        df = statement_to_dataframe(statement)
+        df.to_excel(
+            file_content,
+            sheet_name="Statement",
+            index=False,
+            float_format="%.2f",
+            freeze_panes=(1, 0),
+        )
+    elif file_format == "ofx":
+        raise NotImplementedError("OFX file format is not yet supported")
+
+    return file_content
+
+
+if __name__ == "__main__":
     transactions = [
         models.Transaction(
             transaction_date=datetime.date(2023, 1, 1),
