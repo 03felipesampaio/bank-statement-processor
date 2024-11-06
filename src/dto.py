@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, AliasGenerator, ConfigDict
 from pydantic.alias_generators import to_camel
 import datetime
+from decimal import Decimal
 
 
 class Transaction(BaseModel):
@@ -8,7 +9,7 @@ class Transaction(BaseModel):
     type: str | None = Field(..., description='The type of the transaction, e.g., debit or credit')
     description: str = Field(..., description='A brief description of the transaction')
     category: str | None = Field(..., description='The category of the transaction, e.g., groceries, utilities')
-    value: float = Field(..., description='The monetary value of the transaction')
+    value: Decimal = Field(..., description='The monetary value of the transaction')
     
 
 class CreditCardBill(BaseModel):
@@ -23,7 +24,7 @@ class CreditCardBill(BaseModel):
     bill_date: datetime.date = Field(..., description='The date the bill was due')
     start_date: datetime.date = Field(..., description='The start date of the billing period')
     end_date: datetime.date = Field(..., description='The end date of the billing period')
-    value: float = Field(..., description='The total value of the credit card bill')
+    value: Decimal = Field(..., description='The total value of the credit card bill')
     transactions: list[Transaction] = Field(..., description='A list of transactions included in the bill')
 
 

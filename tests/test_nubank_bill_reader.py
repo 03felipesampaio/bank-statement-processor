@@ -3,6 +3,7 @@ import pytest
 from src.readers.nubank_bill_reader import NubankBillReader
 # Aux libs
 from datetime import date
+from decimal import Decimal
 
 def test_read_bill_date():
     content = "VENCIMENTO: 01 DEZ 2023"
@@ -15,7 +16,7 @@ def test_read_bill_value():
     content = "no valor de R$ 1.665,24"
     reader = NubankBillReader()
     value = reader.read_bill_value(content)
-    assert value == 1665.24
+    assert value == Decimal('1665.24')
 
 
 def test_transform_to_transaction():
@@ -27,7 +28,7 @@ def test_transform_to_transaction():
 
     assert transaction.date == date(2023, 11, 25)
     assert transaction.description == "Hering*Hering6166190 - 3/4"
-    assert transaction.value == 54.99
+    assert transaction.value == Decimal('54.99')
 
 
 # def test_read_transactions():
