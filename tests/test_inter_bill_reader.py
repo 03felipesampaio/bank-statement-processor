@@ -1,6 +1,7 @@
 import pytest
 
 from src.readers.inter_bill_reader import InterBillReader
+from decimal import Decimal
 # Aux libs
 from datetime import date
 
@@ -15,7 +16,7 @@ def test_read_bill_value():
     content = "TOTAL DESSA FATURA\nR$ 1.665,24"
     reader = InterBillReader()
     value = reader.read_bill_value(content)
-    assert value == 1665.24
+    assert value == Decimal('1665.24')
 
 
 def test_read_transactions():
@@ -31,7 +32,7 @@ def test_read_transactions():
     assert len(transactions) == 3
     assert [t.date for t in transactions] == [date(2023, 10, 30), date(2023, 11, 1), date(2023, 11, 22)]
     assert [t.description for t in transactions] == ["Taco Bell", "Pagto Debito Automatico", "Amazon Marketplace"]
-    assert [t.value for t in transactions] == [58.89, -1140.07, 111.70]
+    assert [t.value for t in transactions] == [Decimal('58.89'), Decimal('-1140.07'), Decimal('111.70')]
 
 
 def test_get_bill_period():
