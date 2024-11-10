@@ -173,19 +173,19 @@ async def read_nubank_statement_ofx(upload_file: UploadFile, output_format: OUTP
     elif output_format == OUTPUT_FILE_TYPE.CSV:
         return Response(
             file_types.write_statement_as(output_format, bank_statement).getvalue(),
-            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.csv"},
+            headers={"Content-Disposition": f"attachment; filename=nubank_statement_{bank_statement.start_date}.csv"},
             media_type="text/csv",
         )
     elif output_format == OUTPUT_FILE_TYPE.XLSX:
         return Response(
             file_types.write_statement_as(output_format, bank_statement).getvalue(),
-            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.xlsx"},
+            headers={"Content-Disposition": f"attachment; filename=nubank_statement_{bank_statement.start_date}.xlsx"},
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
     elif output_format == OUTPUT_FILE_TYPE.PARQUET:
         return Response(
             file_types.write_statement_as(output_format, bank_statement).getvalue(),
-            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.parquet"},
+            headers={"Content-Disposition": f"attachment; filename=nubank_statement_{bank_statement.start_date}.parquet"},
             media_type="application/vnd.apache.parquet",
         )
 
