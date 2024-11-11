@@ -141,7 +141,8 @@ async def read_nubank_statement_ofx(upload_file: UploadFile, output_format: OUTP
     start_time = time.time()
     logger.info(f"Reading Nubank's statement file '{upload_file.filename}'")
 
-    if upload_file.content_type != "application/octet-stream" or upload_file.content_type != "application/ofx":
+    if upload_file.filename.endswith(".ofx"):
+    # if upload_file.content_type != "application/octet-stream" or upload_file.content_type != "application/ofx":
         logger.error(
             f"Invalid content type for Nubank's statement file '{upload_file.filename}'"
         )
