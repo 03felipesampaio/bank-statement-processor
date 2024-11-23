@@ -1,8 +1,7 @@
 import pandas as pd
 from src import file_types
 import datetime
-from src.models import BankStatement, Transaction
-from src.models import BankStatement, CreditCardBill, Transaction
+from src.models import BankStatement, CreditCardBill, Transaction, OutputFile
 import io
 import csv
 
@@ -140,12 +139,12 @@ def test_write_bill_as_csv():
     )
 
     # Write the bill to a CSV file
-    file_content = file_types.write_bill_as("csv", bill)
+    file = file_types.write_bill_as("csv", bill)
 
     # Check the file content
-    assert isinstance(file_content, io.BytesIO)
-    file_content.seek(0)
-    csv_content = file_content.read().decode("utf-8")
+    assert isinstance(file, OutputFile)
+    file.content.seek(0)
+    csv_content = file.content.read().decode("utf-8")
     csv_reader = csv.DictReader(io.StringIO(csv_content))
 
     rows = list(csv_reader)
@@ -199,12 +198,12 @@ def test_write_bill_as_xlsx():
     )
 
     # Write the bill to an XLSX file
-    file_content = file_types.write_bill_as("xlsx", bill)
+    file = file_types.write_bill_as("xlsx", bill)
 
     # Check the file content
-    assert isinstance(file_content, io.BytesIO)
-    file_content.seek(0)
-    df = pd.read_excel(file_content, sheet_name="Bill")
+    assert isinstance(file, OutputFile)
+    file.content.seek(0)
+    df = pd.read_excel(file.content, sheet_name="Bill")
 
     assert df.shape == (2, 11)  # 2 transactions, 11 columns
 
@@ -256,12 +255,12 @@ def test_write_bill_as_parquet():
     )
 
     # Write the bill to a Parquet file
-    file_content = file_types.write_bill_as("parquet", bill)
+    file = file_types.write_bill_as("parquet", bill)
 
     # Check the file content
-    assert isinstance(file_content, io.BytesIO)
-    file_content.seek(0)
-    df = pd.read_parquet(file_content)
+    assert isinstance(file, OutputFile)
+    file.content.seek(0)
+    df = pd.read_parquet(file.content)
 
     assert df.shape == (2, 11)  # 2 transactions, 11 columns
 
@@ -312,12 +311,12 @@ def test_write_statement_as_parquet():
     )
 
     # Write the statement to a Parquet file
-    file_content = file_types.write_statement_as("parquet", statement)
+    file = file_types.write_statement_as("parquet", statement)
 
     # Check the file content
-    assert isinstance(file_content, io.BytesIO)
-    file_content.seek(0)
-    df = pd.read_parquet(file_content)
+    assert isinstance(file, OutputFile)
+    file.content.seek(0)
+    df = pd.read_parquet(file.content)
 
     assert df.shape == (2, 9)  # 2 transactions, 9 columns
 
@@ -367,12 +366,12 @@ def test_write_statement_as_csv():
     )
 
     # Write the statement to a CSV file
-    file_content = file_types.write_statement_as("csv", statement)
+    file = file_types.write_statement_as("csv", statement)
 
     # Check the file content
-    assert isinstance(file_content, io.BytesIO)
-    file_content.seek(0)
-    csv_content = file_content.read().decode("utf-8")
+    assert isinstance(file, OutputFile)
+    file.content.seek(0)
+    csv_content = file.content.read().decode("utf-8")
     csv_reader = csv.DictReader(io.StringIO(csv_content))
 
     rows = list(csv_reader)
@@ -423,12 +422,12 @@ def test_write_statement_as_xlsx():
     )
 
     # Write the statement to an XLSX file
-    file_content = file_types.write_statement_as("xlsx", statement)
+    file = file_types.write_statement_as("xlsx", statement)
 
     # Check the file content
-    assert isinstance(file_content, io.BytesIO)
-    file_content.seek(0)
-    df = pd.read_excel(file_content, sheet_name="Statement")
+    assert isinstance(file, OutputFile)
+    file.content.seek(0)
+    df = pd.read_excel(file.content, sheet_name="Statement")
 
     assert df.shape == (2, 9)  # 2 transactions, 9 columns
 

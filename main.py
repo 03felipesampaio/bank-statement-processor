@@ -9,7 +9,7 @@ import json
 import time
 from enum import Enum
 
-from src import dto, file_types
+from src import dto, file_types, file_to_response
 
 # from src.readers.inter_statement import InterStatementReader
 from src.readers import NubankBillReader, OFXReader
@@ -99,30 +99,10 @@ async def read_nubank_credit_card_bill(
 
     if output_format == OUTPUT_FILE_TYPE.JSON:
         return bill_model
-    elif output_format == OUTPUT_FILE_TYPE.CSV:
-        return Response(
-            file_types.write_bill_as(output_format, bill_model).getvalue(),
-            headers={
-                "Content-Disposition": f"attachment; filename=nubank_bill_{bill_model.reference_month}.csv"
-            },
-            media_type="text/csv",
-        )
-    elif output_format == OUTPUT_FILE_TYPE.XLSX:
-        return Response(
-            file_types.write_bill_as(output_format, bill_model).getvalue(),
-            headers={
-                "Content-Disposition": f"attachment; filename=nubank_bill_{bill_model.reference_month}.xlsx"
-            },
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-    elif output_format == OUTPUT_FILE_TYPE.PARQUET:
-        return Response(
-            file_types.write_bill_as(output_format, bill_model).getvalue(),
-            headers={
-                "Content-Disposition": f"attachment; filename=nubank_bill_{bill_model.reference_month}.parquet"
-            },
-            media_type="application/vnd.apache.parquet",
-        )
+    else:
+        output_file = file_types.write_bill_as(output_format, bill_model)
+        response = file_to_response.file_to_response(output_file.filename, output_file.content_type, output_file.content.getvalue())
+        return response
 
 
 @app.post(
@@ -171,24 +151,10 @@ async def read_nubank_statement_ofx(upload_file: UploadFile, output_format: OUTP
     
     if output_format == OUTPUT_FILE_TYPE.JSON:
         return bank_statement
-    elif output_format == OUTPUT_FILE_TYPE.CSV:
-        return Response(
-            file_types.write_statement_as(output_format, bank_statement).getvalue(),
-            headers={"Content-Disposition": f"attachment; filename=nubank_statement_{bank_statement.start_date}.csv"},
-            media_type="text/csv",
-        )
-    elif output_format == OUTPUT_FILE_TYPE.XLSX:
-        return Response(
-            file_types.write_statement_as(output_format, bank_statement).getvalue(),
-            headers={"Content-Disposition": f"attachment; filename=nubank_statement_{bank_statement.start_date}.xlsx"},
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-    elif output_format == OUTPUT_FILE_TYPE.PARQUET:
-        return Response(
-            file_types.write_statement_as(output_format, bank_statement).getvalue(),
-            headers={"Content-Disposition": f"attachment; filename=nubank_statement_{bank_statement.start_date}.parquet"},
-            media_type="application/vnd.apache.parquet",
-        )
+    else:
+        output_file = file_types.write_statement_as(output_format, bank_statement)
+        response = file_to_response.file_to_response(output_file.filename, output_file.content_type, output_file.content.getvalue())
+        return response
 
 
 @app.post(
@@ -244,30 +210,10 @@ async def read_inter_credit_card_bill(
 
     if output_format == OUTPUT_FILE_TYPE.JSON:
         return bill_model
-    elif output_format == OUTPUT_FILE_TYPE.CSV:
-        return Response(
-            file_types.write_bill_as(output_format, bill_model).getvalue(),
-            headers={
-                "Content-Disposition": f"attachment; filename=inter_bill_{bill_model.reference_month}.csv"
-            },
-            media_type="text/csv",
-        )
-    elif output_format == OUTPUT_FILE_TYPE.XLSX:
-        return Response(
-            file_types.write_bill_as(output_format, bill_model).getvalue(),
-            headers={
-                "Content-Disposition": f"attachment; filename=inter_bill_{bill_model.reference_month}.xlsx"
-            },
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-    elif output_format == OUTPUT_FILE_TYPE.PARQUET:
-        return Response(
-            file_types.write_bill_as(output_format, bill_model).getvalue(),
-            headers={
-                "Content-Disposition": f"attachment; filename=inter_bill_{bill_model.reference_month}.parquet"
-            },
-            media_type="application/vnd.apache.parquet",
-        )
+    else:
+        output_file = file_types.write_bill_as(output_format, bill_model)
+        response = file_to_response.file_to_response(output_file.filename, output_file.content_type, output_file.content.getvalue())
+        return response
 
 
 @app.post(
@@ -325,24 +271,10 @@ async def read_inter_statement_ofx(upload_file: UploadFile, output_format: OUTPU
 
     if output_format == OUTPUT_FILE_TYPE.JSON:
         return bank_statement
-    elif output_format == OUTPUT_FILE_TYPE.CSV:
-        return Response(
-            file_types.write_statement_as(output_format, bank_statement).getvalue(),
-            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.csv"},
-            media_type="text/csv",
-        )
-    elif output_format == OUTPUT_FILE_TYPE.XLSX:
-        return Response(
-            file_types.write_statement_as(output_format, bank_statement).getvalue(),
-            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.xlsx"},
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-    elif output_format == OUTPUT_FILE_TYPE.PARQUET:
-        return Response(
-            file_types.write_statement_as(output_format, bank_statement).getvalue(),
-            headers={"Content-Disposition": f"attachment; filename=inter_statement_{bank_statement.start_date}.parquet"},
-            media_type="application/vnd.apache.parquet",
-        )
+    else:
+        output_file = file_types.write_statement_as(output_format, bank_statement)
+        response = file_to_response.file_to_response(output_file.filename, output_file.content_type, output_file.content.getvalue())
+        return response
 
 
 if __name__ == "__main__":
