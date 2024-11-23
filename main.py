@@ -135,12 +135,12 @@ async def read_nubank_statement_ofx(upload_file: UploadFile, output_format: OUTP
 
     bank_statement = OFXReader().read(contents)
 
-    if bank_statement.bank_name != "NU PAGAMENTOS S.A.":
-        logger.error(f"Invalid Nubank's statement file '{upload_file.filename}'")
-        raise HTTPException(
-            400,
-            f"This is not a valid Nubank statement file, this is a {bank_statement.bank_name} statement file. Please upload a valid one.",
-        )
+    # if bank_statement.bank_name != "NU PAGAMENTOS S.A.":
+    #     logger.error(f"Invalid Nubank's statement file '{upload_file.filename}'")
+    #     raise HTTPException(
+    #         400,
+    #         f"This is not a valid Nubank statement file, this is a {bank_statement.bank_name} statement file. Please upload a valid one.",
+    #     )
 
     bank_statement.bank_name = "Nubank"
 
