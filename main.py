@@ -75,12 +75,12 @@ async def read_nubank_credit_card_bill(
     start_time = time.time()
     logger.info(f"Reading Nubank's bill file '{upload_file.filename}'")
 
-    if upload_file.content_type != "application/pdf":
-        logger.error(f"Invalid content type for Nubank's bill file '{upload_file.filename}'")
-        raise HTTPException(
-            400,
-            f"Invalid content type. The file must be a PDF. Got '{upload_file.content_type}'",
-        )
+    # if upload_file.content_type != "application/pdf":
+    #     logger.error(f"Invalid content type for Nubank's bill file '{upload_file.filename}'")
+    #     raise HTTPException(
+    #         400,
+    #         f"Invalid content type. The file must be a PDF. Got '{upload_file.content_type}'",
+    #     )
 
     contents = await upload_file.read()  # .decode('utf8')
     document = fitz.Document(stream=contents)
@@ -178,12 +178,12 @@ async def read_inter_credit_card_bill(
     start_time = time.time()
     logger.info(f"Reading Inter's bill file '{upload_file.filename}'")
 
-    if upload_file.content_type != "application/pdf":
-        logger.error(f"Invalid content type for Inter's bill file '{upload_file.filename}'")
-        raise HTTPException(
-            400,
-            f"Invalid content type. The file must be a PDF. Got '{upload_file.content_type}'",
-        )
+    # if upload_file.content_type != "application/pdf":
+    #     logger.error(f"Invalid content type for Inter's bill file '{upload_file.filename}'")
+    #     raise HTTPException(
+    #         400,
+    #         f"Invalid content type. The file must be a PDF. Got '{upload_file.content_type}'",
+    #     )
 
     contents = await upload_file.read()
 
@@ -235,14 +235,14 @@ async def read_inter_statement_ofx(upload_file: UploadFile, output_format: OUTPU
     start_time = time.time()
     logger.info(f"Reading Inter's statement file '{upload_file.filename}'")
 
-    if upload_file.content_type != "application/octet-stream":
-        logger.error(
-            f"Invalid content type for Inter's statement file '{upload_file.filename}'"
-        )
-        raise HTTPException(
-            400,
-            f"Invalid content type. The file must be an OFX. Got '{upload_file.content_type}'",
-        )
+    # if upload_file.content_type != "application/octet-stream":
+    #     logger.error(
+    #         f"Invalid content type for Inter's statement file '{upload_file.filename}'"
+    #     )
+    #     raise HTTPException(
+    #         400,
+    #         f"Invalid content type. The file must be an OFX. Got '{upload_file.content_type}'",
+    #     )
 
     contents = await upload_file.read()
 
