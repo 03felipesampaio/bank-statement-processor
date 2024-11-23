@@ -10,7 +10,7 @@ from .. import utils
 
 class InterBillReader(CreditCardPDFReader):
     BILL_DATE_PATTERN = r"VENCIMENTO[\s\n]+(?P<date>\d{2}/\d{2}/\d{4})"
-    BILL_VALUE_PATTERN = r"TOTAL DESSA FATURA[\s\n]+R\$[\s\n]+(?P<value>[\d.]+,\d{2})"
+    BILL_VALUE_PATTERN = r"TOTAL (DESSA|DA SUA) FATURA[\s\n]+R\$[\s\n]+(?P<value>[\d.]+,\d{2})"
     CREDIT_CARD_HEADER_PATTERN = (
         r"\nCARTÃO (?P<first_digits>\d{4})\s+(?P<last_digits>\d{4})"
     )
@@ -57,7 +57,7 @@ class InterBillReader(CreditCardPDFReader):
         Returns:
             date: The bill date.
         """
-        match = re.search(self.BILL_DATE_PATTERN, content)
+        match = re.search(self.BILL_DATE_PATTERN, content, re.I)
 
         if match:
             bill_date = arrow.get(match.group(1), "DD/MM/YYYY").date()
@@ -75,7 +75,8 @@ class InterBillReader(CreditCardPDFReader):
         Returns:
             float: The bill value.
         """
-        value_string = re.search(self.BILL_VALUE_PATTERN, content).group(1)
+        print(content)
+        value_string = re.search(self.BILL_VALUE_PATTERN, content, flags=re.I).group(2)
         return utils.convert_brazilian_real_notation_to_decimal(value_string)
 
     def check_if_page_has_credit_card_header(self, page_content: str) -> bool:
