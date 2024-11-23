@@ -4,6 +4,9 @@
 # Statements and bills should be converted to Excel sheet, CSV and OFX file formats
 
 ##############
+from fileinput import filename
+
+from src.models import output_file
 from . import models
 
 import pandas as pd
@@ -62,7 +65,7 @@ def statement_to_dataframe(statement: models.BankStatement) -> pd.DataFrame:
     return df
 
 
-def write_bill_as(file_format: FILE_FORMAT, bill: models.CreditCardBill) -> io.BytesIO:
+def write_bill_as(file_format: FILE_FORMAT, bill: models.CreditCardBill) -> models.OutputFile:
     """Converts a Bill object to a file in the specified format.
 
     Args:
@@ -72,12 +75,14 @@ def write_bill_as(file_format: FILE_FORMAT, bill: models.CreditCardBill) -> io.B
     Returns:
         The file content as a BytesIO object.
     """
-
+    filename = f'{bill.reference_month}_{bill.bank_name}_bill'
     file_content = io.BytesIO()
 
     if file_format == "csv":
         df = bill_to_dataframe(bill)
         df.to_csv(file_content, index=False, quoting=csv.QUOTE_NONNUMERIC)
+        
+        output_file = models.OutputFile(filename+'.csv', 'text/csv', file_content)
     elif file_format == "xlsx":
         df = bill_to_dataframe(bill)
         df.to_excel(
@@ -87,33 +92,39 @@ def write_bill_as(file_format: FILE_FORMAT, bill: models.CreditCardBill) -> io.B
             float_format="%.2f",
             freeze_panes=(1, 0),
         )
+        
+        output_file = models.OutputFile(filename+'.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', file_content)
     elif file_format == "parquet":
         df = bill_to_dataframe(bill)
         df.to_parquet(file_content, index=False)
+        
+        output_file = models.OutputFile(filename+'.parquet', 'application/vnd.apache.parquet', file_content)
     elif file_format == "ofx":
         raise NotImplementedError("OFX file format is not yet supported")
 
-    return file_content
+    return output_file
 
 
 def write_statement_as(
     file_format: FILE_FORMAT, statement: models.BankStatement
-) -> io.BytesIO:
+) -> output_file.OutputFile:
     """Converts a BankStatement object to a file in the specified format.
 
     Args:
         file_format: The format of the file to be generated ("csv", "xlsx", "ofx", "parquet").
-        statement: The Bill object to be converted.
+        statement: The BankStatement object to be converted.
 
     Returns:
         The file content as a BytesIO object.
     """
-
+    filename = f'{statement.start_date}_{statement.bank_name}_statement'
     file_content = io.BytesIO()
 
     if file_format == "csv":
         df = statement_to_dataframe(statement)
         df.to_csv(file_content, index=False, quoting=csv.QUOTE_NONNUMERIC)
+        
+        output_file = models.OutputFile(filename+'.csv', 'text/csv', file_content)
     elif file_format == "xlsx":
         df = statement_to_dataframe(statement)
         df.to_excel(
@@ -123,13 +134,15 @@ def write_statement_as(
             float_format="%.2f",
             freeze_panes=(1, 0),
         )
+        output_file = models.OutputFile(filename+'.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', file_content)
     elif file_format == "parquet":
         df = statement_to_dataframe(statement)
         df.to_parquet(file_content, index=False)
+        output_file = models.OutputFile(filename+'.parquet', 'application/vnd.apache.parquet', file_content)
     elif file_format == "ofx":
         raise NotImplementedError("OFX file format is not yet supported")
 
-    return file_content
+    return output_file
 
 
 if __name__ == "__main__":
