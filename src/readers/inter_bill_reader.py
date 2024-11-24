@@ -16,7 +16,14 @@ class InterBillReader(CreditCardPDFReader):
     )
     TRANSACTION_HEADER_PATTERN = r"DATA\s*MOVIMENTAÇÃO\s*VALOR"
     TRANSACTION_PATTERN = re.compile(
-        r"(?P<date>\d{2}[\s\n]+\w{3}[\s\n]+\d{4})[\s\n]+(?P<description>[^\n]+[^+])[\s\n]+(?P<value>\+?[\s\n]*R\$[\s\n]+[\d.]+[\s\n]*,[\s\n]*\d{2})"
+        r"""
+        (?P<date>\d{2}\s+(de\s+)?\w{3}\.?\s+\d{4})  # Date in the format 'dd de mmm. yyyy' or 'dd mmm yyyy'
+        \s+
+        (?P<description>.+?)                  # Description of the transaction
+        \s*-?\s*                              # Optional '-' between description and value
+        (?P<value>\+?\s*R\$\s+[\d.]+\s*,\s*\d{2})  # Value in the format 'R$ xx,yy'
+        """,
+        re.VERBOSE|re.DOTALL
     )
     TOTAL_VALUE_FOOTER_PATTERN = re.compile(
         r"VALOR TOTAL CARTÃO (?P<last_digits>\d{4})"
@@ -75,7 +82,6 @@ class InterBillReader(CreditCardPDFReader):
         Returns:
             float: The bill value.
         """
-        print(content)
         value_string = re.search(self.BILL_VALUE_PATTERN, content, flags=re.I).group(2)
         return utils.convert_brazilian_real_notation_to_decimal(value_string)
 
@@ -107,12 +113,12 @@ class InterBillReader(CreditCardPDFReader):
             transactions.append(
                 models.Transaction(
                     arrow.get(
-                        re.sub(r" +", " ", row["date"]), "DD MMM YYYY", locale="pt-BR"
+                        re.sub(r" +", " ", row["date"]).replace(' de ', ' ').replace('.', ''), "DD MMM YYYY", locale="pt-BR"
                     ).date(),
                     None,
-                    row["description"],
+                    re.sub(r"\n\s*", "", row["description"]),
                     utils.convert_brazilian_real_notation_to_decimal(
-                        row["value"].replace("+", "-")
+                        re.sub(r" +", " ", row["value"]).replace("+", "-")
                     ),  # Consider bill payment as a negative value
                 )
             )
@@ -152,3 +158,86 @@ class InterBillReader(CreditCardPDFReader):
             bill.transactions.extend(self.read_transactions(text))
 
         return bill
+
+
+# if __name__ == "__main__":
+
+# #     reader = InterBillReader()
+# #     reader.read_transactions("""07 de out. 2024
+# # P
+# # AO DE QUEIJO MINEIRO
+# # -
+# # R$ 14,00""")
+#     # (?P<value>\+?[\s\n]*R\$[\s\n]+[\d.]+[\s\n]*,[\s\n]*\d{2})
+    
+#     string = """07 de out. 2024
+# P
+# AO DE QUEIJO MINEIRO
+# -
+# R$ 14,00
+# 07 de out. 2024
+# Uber *UBER *TRIP
+# -
+# R$ 6,95
+# 11 de out. 2024
+# Uber *UBER *TRIP
+# -
+# R$ 13,90
+# 12 de out. 2024
+# ASA*FUTURO GESTAO FINA
+# -
+# R$ 59,90
+# 15 de out. 2024
+# Uber *UBER *TRIP
+# -
+# R$ 14,55
+# 16 de out. 2024
+# MonicaRosaPimenta
+# -
+# R$ 14,50
+# 17 de out. 2024
+# Uber *UBER *TRIP
+# -
+# R$ 6,80
+# 18 de out. 2024
+# MP *NAPOLESPIZZAR
+# -
+# R$ 69,89
+# 18 de out. 2024
+# Uber *UBER *TRIP
+# -
+# R$ 6,
+# 15
+# 19 de out. 2024
+# Uber *UBER *TRIP
+# -
+# R$ 15,38
+# 19 de out. 2024
+# Uber *UBER *TRIP
+# -
+# R$ 6,90
+# 19 de out. 2024
+# Uber *UBER *TRIP
+# -
+# R$ 9,95
+# 20 de out. 2024
+# JAU SERVE LJ 32
+# -
+# R$ 11,99
+# 21 de out. 2024
+# MP *NAPOLESPIZZAR
+# -
+# R$ 60,89
+# 21 de out. 2024
+# Uber *UBER *TRIP
+# -
+# + R$ 9,90"""
+#     TRANSACTION_PATTERN = re.compile(
+#         r"(?P<date>\d{2}[\s\n]+(de[\s\n]+)?\w{3}\.?[\s\n]+\d{4})[\s\n]+(?P<description>.+?)[\s\n]+-\s*\+?R\$\s*(?P<value>[\d.,]+)"
+#     )
+#     # TRANSACTION_PATTERN = re.compile(
+#     #     r"(?P<date>\d{2}[\s\n]+(de[\s\n]+)?\w{3}\.?[\s\n]+\d{4})[\s\n]+(?P<description>.+)[\s\n]+"
+#     # )
+    
+#     # print(TRANSACTION_PATTERN.match("07 de out. 2024\nP\nAO DE QUEIJO MINEIRO\n-\nR$ 14,00").groupdict())
+#     print(re.findall(TRANSACTION_PATTERN, string))
