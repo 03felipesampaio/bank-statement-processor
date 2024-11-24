@@ -5,6 +5,7 @@
 
 ##############
 from fileinput import filename
+import re
 
 from src.models import output_file
 from . import models
@@ -21,6 +22,20 @@ FILE_FORMAT = Literal["csv", "xlsx", "ofx", "parquet"]
 
 def bill_to_dataframe(bill: models.CreditCardBill) -> pd.DataFrame:
     """Converts a Bill object to a pandas DataFrame."""
+    mapping_names_and_types = {
+        "bank_name": "string",
+        "bill_date": "datetime64",
+        "bill_reference_month": "string",
+        "bill_value": "float64",
+        "bill_start_date": "datetime64",
+        "bill_end_date": "datetime64",
+        "transaction_date": "datetime64",
+        "transaction_type": "string",
+        "transaction_description": "string",
+        "transaction_value": "float64",
+        "transaction_category": "string",
+    }
+    
     df = pd.DataFrame(
         [
             {
@@ -37,7 +52,8 @@ def bill_to_dataframe(bill: models.CreditCardBill) -> pd.DataFrame:
                 "transaction_category": t.category,
             }
             for t in bill.transactions
-        ]
+        ],
+        columns=mapping_names_and_types.keys()
     )
 
     return df
@@ -45,6 +61,19 @@ def bill_to_dataframe(bill: models.CreditCardBill) -> pd.DataFrame:
 
 def statement_to_dataframe(statement: models.BankStatement) -> pd.DataFrame:
     """Converts a BankStatement object to a pandas DataFrame."""
+    
+    mapping_names_and_types = {
+        "bank_name": "string",
+        "statement_start_date": "datetime64",
+        "statement_end_date": "datetime64",
+        "statement_account_id": "string",
+        "transaction_date": "datetime64",
+        "transaction_type": "string",
+        "transaction_description": "string",
+        "transaction_value": "float64",
+        "transaction_category": "string",
+    }
+    
     df = pd.DataFrame(
         [
             {
@@ -59,13 +88,16 @@ def statement_to_dataframe(statement: models.BankStatement) -> pd.DataFrame:
                 "transaction_category": t.category,
             }
             for t in statement.transactions
-        ]
+        ],
+        columns=mapping_names_and_types.keys()
     )
 
     return df
 
 
-def write_bill_as(file_format: FILE_FORMAT, bill: models.CreditCardBill) -> models.OutputFile:
+def write_bill_as(
+    file_format: FILE_FORMAT, bill: models.CreditCardBill
+) -> models.OutputFile:
     """Converts a Bill object to a file in the specified format.
 
     Args:
@@ -75,14 +107,14 @@ def write_bill_as(file_format: FILE_FORMAT, bill: models.CreditCardBill) -> mode
     Returns:
         The file content as a BytesIO object.
     """
-    filename = f'{bill.reference_month}_{bill.bank_name}_bill'
+    filename = f"{bill.reference_month}_{bill.bank_name}_bill"
     file_content = io.BytesIO()
 
     if file_format == "csv":
         df = bill_to_dataframe(bill)
         df.to_csv(file_content, index=False, quoting=csv.QUOTE_NONNUMERIC)
-        
-        output_file = models.OutputFile(filename+'.csv', 'text/csv', file_content)
+
+        output_file = models.OutputFile(filename + ".csv", "text/csv", file_content)
     elif file_format == "xlsx":
         df = bill_to_dataframe(bill)
         df.to_excel(
@@ -92,13 +124,19 @@ def write_bill_as(file_format: FILE_FORMAT, bill: models.CreditCardBill) -> mode
             float_format="%.2f",
             freeze_panes=(1, 0),
         )
-        
-        output_file = models.OutputFile(filename+'.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', file_content)
+
+        output_file = models.OutputFile(
+            filename + ".xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            file_content,
+        )
     elif file_format == "parquet":
         df = bill_to_dataframe(bill)
         df.to_parquet(file_content, index=False)
-        
-        output_file = models.OutputFile(filename+'.parquet', 'application/vnd.apache.parquet', file_content)
+
+        output_file = models.OutputFile(
+            filename + ".parquet", "application/vnd.apache.parquet", file_content
+        )
     elif file_format == "ofx":
         raise NotImplementedError("OFX file format is not yet supported")
 
@@ -117,14 +155,14 @@ def write_statement_as(
     Returns:
         The file content as a BytesIO object.
     """
-    filename = f'{statement.start_date}_{statement.bank_name}_statement'
+    filename = f"{statement.start_date}_{statement.bank_name}_statement"
     file_content = io.BytesIO()
 
     if file_format == "csv":
         df = statement_to_dataframe(statement)
         df.to_csv(file_content, index=False, quoting=csv.QUOTE_NONNUMERIC)
-        
-        output_file = models.OutputFile(filename+'.csv', 'text/csv', file_content)
+
+        output_file = models.OutputFile(filename + ".csv", "text/csv", file_content)
     elif file_format == "xlsx":
         df = statement_to_dataframe(statement)
         df.to_excel(
@@ -134,11 +172,17 @@ def write_statement_as(
             float_format="%.2f",
             freeze_panes=(1, 0),
         )
-        output_file = models.OutputFile(filename+'.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', file_content)
+        output_file = models.OutputFile(
+            filename + ".xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            file_content,
+        )
     elif file_format == "parquet":
         df = statement_to_dataframe(statement)
         df.to_parquet(file_content, index=False)
-        output_file = models.OutputFile(filename+'.parquet', 'application/vnd.apache.parquet', file_content)
+        output_file = models.OutputFile(
+            filename + ".parquet", "application/vnd.apache.parquet", file_content
+        )
     elif file_format == "ofx":
         raise NotImplementedError("OFX file format is not yet supported")
 
@@ -181,6 +225,6 @@ if __name__ == "__main__":
     with open("files/test_bill.xlsx", "wb") as f:
         f.write(file_content.getvalue())
 
-    with open('files/test_bill.parquet', 'wb') as f:
+    with open("files/test_bill.parquet", "wb") as f:
         file_content = write_bill_as("parquet", bill)
         f.write(file_content.getvalue())
