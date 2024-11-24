@@ -1,3 +1,4 @@
+import json
 import fitz
 import re
 from datetime import datetime, date
@@ -162,6 +163,7 @@ class NubankBillReader(CreditCardPDFReader):
         # Color used to highlight positive transactions
         # Transactions with this color have inverted signal
         POSITIVE_TRANSACTION_GREEN = (108, 192, 13)
+        POSITIVE_TRANSACTION_GREEN_SINCE_2024_06 = (12, 121, 57)
         transactions = []
 
         # https://pymupdf.readthedocs.io/en/latest/recipes-text.html#how-to-extract-text-with-color
@@ -175,18 +177,19 @@ class NubankBillReader(CreditCardPDFReader):
                 date_span, descr_span, value_span = map(
                     lambda x: x["spans"][0], block["lines"]
                 )
+                
+                value_match = re.match(r"(?P<signal>-)?(?P<coin>R\$)\s+(?P<value>\d+,\d{2})", value_span["text"])
 
-                if not re.match(r"\d{2} \w{3}", date_span["text"]) or not re.match(
-                    r"\d+,\d{2}", value_span["text"]
-                ):
+                if not re.match(r"\d{2} \w{3}", date_span["text"]) or not value_match:
                     continue
-
-                value = (
-                    value_span["text"]
-                    if fitz.sRGB_to_rgb(value_span["color"])
-                    != POSITIVE_TRANSACTION_GREEN
-                    else "-" + value_span["text"]
-                )
+                
+                value_dict = value_match.groupdict()
+                
+                # Positive transactions are highlighted in green, so we need to invert the signal case the signal is not explicit
+                if fitz.sRGB_to_rgb(value_span["color"]) == POSITIVE_TRANSACTION_GREEN or fitz.sRGB_to_rgb(value_span["color"]) == POSITIVE_TRANSACTION_GREEN_SINCE_2024_06:
+                    value = "-" + value_span["text"] if value_dict["signal"] is None else value_span["text"]
+                else:
+                    value = value_span["text"]
 
                 # TODO Still cant get category, so for now category will be set to None
                 transaction = (date_span["text"], None, descr_span["text"], value)
