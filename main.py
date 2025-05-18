@@ -14,6 +14,11 @@ from src import dto, file_types
 # from src.readers.inter_statement import InterStatementReader
 from src.readers import NubankBillReader, OFXReader
 from src.readers.inter_bill_reader import InterBillReader
+from src import models
+from src.readers.reader_factory import ReaderFactory
+import io
+
+from src.responses.responses import build_response
 
 
 logger = logging.getLogger("statement_processor")
@@ -53,6 +58,47 @@ async def hello_world():
     #     "For more info go to /docs or directly to repository "
     #     "https://github.com/03felipesampaio/bank-statement-processor"
     # )
+
+
+
+
+def read_report_file(bank_name: str, report_type: str, file_content: bytes, file_name: str, file_mime_type: str) -> models.BankStatement | models.CreditCardBill:
+    file_reader = ReaderFactory().get_reader(bank_name, report_type, file_mime_type)
+
+    if not file_reader:
+        raise ValueError(f"Failed to read file {file_name}. Reader not found for bank {bank_name} and report type {report_type}")
+    
+    if not file_reader.is_valid(file_content):
+        raise ValueError(f"Failed to read file {file_name}. File is not valid for bank {bank_name} and report type {report_type}")
+    
+    return file_reader.read(file_content)
+
+
+def export_report_to_file(report: models.BankStatement | models.CreditCardBill, output_format: OUTPUT_FILE_TYPE) -> io.BytesIO:
+    if isinstance(report, models.BankStatement):
+        return file_types.write_statement_as(output_format, report)
+    elif isinstance(report, models.CreditCardBill):
+        return file_types.write_bill_as(output_format, report)
+
+
+def build_response_from_report(report: models.BankStatement | models.CreditCardBill, output_format: OUTPUT_FILE_TYPE, filename) -> Response:
+    return Response(
+        content=export_report_to_file(report, output_format).getvalue(),
+        headers={"Content-Disposition": f"attachment; filename=statement.{output_format}"},
+        media_type="application/octet-stream",
+    )
+
+
+@app.get("/{bank_name}/bills")
+async def read_credit_card_bill(bank_name: str, upload_file: UploadFile, output_format: OUTPUT_FILE_TYPE = OUTPUT_FILE_TYPE.JSON):
+    try:
+        bill = read_report_file(bank_name, "bill", await upload_file.read(), upload_file.filename, upload_file.content_type)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    bill_file_data = export_report_to_file(bill, output_format)
+
+    return build_response_from_report(bill, output_format)
 
 
 @app.post(
