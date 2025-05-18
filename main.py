@@ -1,5 +1,5 @@
-from fastapi import FastAPI, HTTPException, UploadFile, Depends
-from fastapi.responses import Response, HTMLResponse
+from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi.responses import HTMLResponse
 from contextlib import asynccontextmanager
 import fitz
 import os
@@ -8,6 +8,8 @@ from pathlib import Path
 import json
 import time
 from enum import Enum
+import hashlib
+from typing import Union
 
 from src import dto, file_types, file_to_response
 
@@ -33,6 +35,19 @@ def setup_logging():
 
     config_file = Path(__file__).parent / "log_config.json"
     logging.config.dictConfig(json.loads(config_file.read_text()))
+
+
+async def get_uploadfile_hash(upload_file: UploadFile, hash_algo: str = "sha256") -> str:
+    """Calculate the hash of an UploadFile's content."""
+    hasher = hashlib.new(hash_algo)
+    await upload_file.seek(0)
+    while True:
+        chunk = await upload_file.read(4096)
+        if not chunk:
+            break
+        hasher.update(chunk)
+    await upload_file.seek(0)
+    return hasher.hexdigest()
 
 
 @asynccontextmanager
@@ -75,6 +90,8 @@ async def read_nubank_credit_card_bill(
     start_time = time.time()
     logger.info(f"Reading Nubank's bill file '{upload_file.filename}'")
 
+    file_hash = await get_uploadfile_hash(upload_file)
+
     # if upload_file.content_type != "application/pdf":
     #     logger.error(f"Invalid content type for Nubank's bill file '{upload_file.filename}'")
     #     raise HTTPException(
@@ -91,6 +108,7 @@ async def read_nubank_credit_card_bill(
         )
 
     bill_model = NubankBillReader().read(document)
+    bill_model.file_hash = file_hash
 
     end_time = time.time()
     logger.info(
@@ -121,6 +139,8 @@ async def read_nubank_statement_ofx(upload_file: UploadFile, output_format: OUTP
     start_time = time.time()
     logger.info(f"Reading Nubank's statement file '{upload_file.filename}'")
 
+    file_hash = await get_uploadfile_hash(upload_file)
+
     if not upload_file.filename.endswith(".ofx"):
     # if upload_file.content_type != "application/octet-stream" or upload_file.content_type != "application/ofx":
         logger.error(
@@ -134,6 +154,7 @@ async def read_nubank_statement_ofx(upload_file: UploadFile, output_format: OUTP
     contents = upload_file.file
 
     bank_statement = OFXReader().read(contents)
+    bank_statement.file_hash = file_hash
 
     # if bank_statement.bank_name != "NU PAGAMENTOS S.A.":
     #     logger.error(f"Invalid Nubank's statement file '{upload_file.filename}'")
@@ -178,6 +199,8 @@ async def read_inter_credit_card_bill(
     start_time = time.time()
     logger.info(f"Reading Inter's bill file '{upload_file.filename}'")
 
+    file_hash = await get_uploadfile_hash(upload_file)
+
     # if upload_file.content_type != "application/pdf":
     #     logger.error(f"Invalid content type for Inter's bill file '{upload_file.filename}'")
     #     raise HTTPException(
@@ -202,6 +225,7 @@ async def read_inter_credit_card_bill(
         )
 
     bill_model = InterBillReader().read(document)
+    bill_model.file_hash = file_hash
 
     end_time = time.time()
     logger.info(
@@ -235,6 +259,8 @@ async def read_inter_statement_ofx(upload_file: UploadFile, output_format: OUTPU
     start_time = time.time()
     logger.info(f"Reading Inter's statement file '{upload_file.filename}'")
 
+    file_hash = await get_uploadfile_hash(upload_file)
+
     # if upload_file.content_type != "application/octet-stream":
     #     logger.error(
     #         f"Invalid content type for Inter's statement file '{upload_file.filename}'"
@@ -253,6 +279,7 @@ async def read_inter_statement_ofx(upload_file: UploadFile, output_format: OUTPU
         fp.write(contents)
     with open("inter_temp.ofx", "r", encoding="utf8") as fp:
         bank_statement = OFXReader().read(fp)
+        bank_statement.file_hash = file_hash
     os.unlink("inter_temp.ofx")
 
     if bank_statement.bank_name != "Banco Intermedium S/A":
@@ -279,6 +306,7 @@ async def read_inter_statement_ofx(upload_file: UploadFile, output_format: OUTPU
 
 if __name__ == "__main__":
     import uvicorn
+
 
     uvicorn.run(
         app, host=os.getenv("HOST", "0.0.0.0"), port=int(os.getenv("PORT", 8000))

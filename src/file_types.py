@@ -23,6 +23,7 @@ FILE_FORMAT = Literal["csv", "xlsx", "ofx", "parquet"]
 def bill_to_dataframe(bill: models.CreditCardBill) -> pd.DataFrame:
     """Converts a Bill object to a pandas DataFrame."""
     mapping_names_and_types = {
+        "file_hash": "string",
         "bank_name": "string",
         "bill_date": "datetime64",
         "bill_reference_month": "string",
@@ -39,6 +40,7 @@ def bill_to_dataframe(bill: models.CreditCardBill) -> pd.DataFrame:
     df = pd.DataFrame(
         [
             {
+                "file_hash": bill.file_hash,
                 "bank_name": bill.bank_name,
                 "bill_date": bill.bill_date,
                 "bill_reference_month": bill.reference_month,
@@ -63,6 +65,7 @@ def statement_to_dataframe(statement: models.BankStatement) -> pd.DataFrame:
     """Converts a BankStatement object to a pandas DataFrame."""
     
     mapping_names_and_types = {
+        "file_hash": "string",
         "bank_name": "string",
         "statement_start_date": "datetime64",
         "statement_end_date": "datetime64",
@@ -77,6 +80,7 @@ def statement_to_dataframe(statement: models.BankStatement) -> pd.DataFrame:
     df = pd.DataFrame(
         [
             {
+                "file_hash": statement.file_hash,
                 "bank_name": statement.bank_name,
                 "statement_start_date": statement.start_date,
                 "statement_end_date": statement.end_date,

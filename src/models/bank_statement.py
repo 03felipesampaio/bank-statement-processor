@@ -2,7 +2,8 @@ from datetime import date
 from . import Transaction
 
 class BankStatement:
-    def __init__(self, bank_name: str, start_date: date, end_date: date, account_id: str, transactions: list[Transaction] = None) -> None:
+    def __init__(self, bank_name: str, start_date: date, end_date: date, account_id: str, transactions: list[Transaction] = None, file_hash: str = None) -> None:
+        self.file_hash = file_hash
         self.bank_name = bank_name
         self.start_date = start_date
         self.end_date = end_date
